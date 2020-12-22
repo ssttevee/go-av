@@ -11,6 +11,9 @@ import (
 	"reflect"
 	"runtime"
 	"unsafe"
+
+	"github.com/ssttevee/go-av/avformat"
+	"github.com/ssttevee/go-av/avutil"
 )
 
 type pinnedFile struct {
@@ -87,11 +90,13 @@ func goavFileSeek(p unsafe.Pointer, offset C.int64_t, whence C.int) C.int64_t {
 	return C.int64_t(pos)
 }
 
+type _ioContext = avformat.IOContext
+
 type ioContext struct {
-	ctx *C.AVIOContext
+	*_ioContext
 }
 
-func allocAvioContext(f interface{}, writable bool) *C.AVIOContext {
+func allocAvioContext(f interface{}, writable bool) *avformat.IOContext {
 	var read, write, seek *[0]byte
 	if _, ok := f.(io.Reader); ok {
 		read = (*[0]byte)(C.goavFileReadPacket)
@@ -117,12 +122,12 @@ func allocAvioContext(f interface{}, writable bool) *C.AVIOContext {
 		}
 	}
 
-	var writeFlag C.int
+	var writeFlag int32
 	if writable {
 		writeFlag = 1
 	}
 
-	ctx := C.avio_alloc_context((*C.uchar)(C.av_malloc(1<<12)), 1<<12, writeFlag, pinptr(p), read, write, seek)
+	ctx := avformat.NewIOContext((*byte)(avutil.Malloc(1<<12)), 1<<12, writeFlag, pinptr(p), read, write, seek)
 	if ctx == nil {
 		panic(ErrNoMem)
 	}
@@ -134,12 +139,12 @@ func allocAvioContext(f interface{}, writable bool) *C.AVIOContext {
 
 func newIOContext(f interface{}, writable bool) *ioContext {
 	ret := &ioContext{
-		ctx: allocAvioContext(f, writable),
+		_ioContext: allocAvioContext(f, writable),
 	}
 
 	runtime.SetFinalizer(ret, func(ctx *ioContext) {
-		delete(pinnedFiles, pin(ctx.ctx.opaque))
-		C.avio_context_free(&ctx.ctx)
+		delete(pinnedFiles, pin(ctx._ioContext.Opaque))
+		avformat.FreeIOContext(&ctx._ioContext)
 	})
 
 	return ret

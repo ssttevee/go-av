@@ -7,37 +7,36 @@ import (
 	"io"
 	"runtime"
 	"sync"
-	"unsafe"
+
+	"github.com/ssttevee/go-av/avcodec"
+	"github.com/ssttevee/go-av/avformat"
 )
 
 type outputDest interface {
-	initIOContext(pb **C.AVIOContext) (func() error, error)
+	initIOContext(pb **avformat.IOContext) (func() error, error)
 }
 
 type writerOutputDest struct {
 	w io.Writer
 }
 
-func (dst writerOutputDest) initIOContext(pb **C.AVIOContext) (func() error, error) {
+func (dst writerOutputDest) initIOContext(pb **avformat.IOContext) (func() error, error) {
 	*pb = allocAvioContext(dst.w, true)
 	return nil, nil
 }
 
 type fileOutputDest string
 
-func (dst fileOutputDest) initIOContext(pb **C.AVIOContext) (func() error, error) {
-	filename := C.CString(string(dst))
-	defer C.free(unsafe.Pointer(filename))
-
-	var ctx *C.AVIOContext
-	if err := averror(C.avio_open(&ctx, filename, C.AVIO_FLAG_WRITE)); err != nil {
+func (dst fileOutputDest) initIOContext(pb **avformat.IOContext) (func() error, error) {
+	var ctx *avformat.IOContext
+	if err := averror(avformat.OpenIO(&ctx, string(dst), C.AVIO_FLAG_WRITE)); err != nil {
 		return nil, err
 	}
 
 	*pb = ctx
 
 	return func() error {
-		return averror(C.avio_close(ctx))
+		return averror(avformat.CloseIO(ctx))
 	}, nil
 }
 
@@ -77,31 +76,22 @@ func NewWriterOutputContext(formatName string, w io.Writer) (*OutputFormatContex
 }
 
 func newOutputContext(formatName string, filename string) (*OutputFormatContext, error) {
-	cformatName := C.CString(formatName)
-	defer C.free(unsafe.Pointer(cformatName))
-
-	var cfilename *C.char
-	if filename != "" {
-		cfilename = C.CString(filename)
-		defer C.free(unsafe.Pointer(cfilename))
-	}
-
-	var ctx *C.AVFormatContext
-	if err := averror(C.avformat_alloc_output_context2(&ctx, nil, cformatName, cfilename)); err != nil {
+	var ctx *avformat.Context
+	if err := averror(avformat.NewOutputContext(&ctx, nil, formatName, filename)); err != nil {
 		return nil, err
 	}
 
-	ctx.opaque = nil
+	ctx.Opaque = nil
 
 	ret := &OutputFormatContext{
 		formatContext: formatContext{
-			ctx: ctx,
+			_formatContext: ctx,
 		},
 	}
 
 	runtime.SetFinalizer(ret, func(ctx *OutputFormatContext) {
-		ctx.finalizedPinnedData()
-		C.avformat_free_context(ctx.ctx)
+		ctx.finalizePinnedData()
+		avformat.FreeContext(ctx._formatContext)
 	})
 
 	return ret, nil
@@ -112,39 +102,39 @@ func NewOutputContext(formatName string) (*OutputFormatContext, error) {
 }
 
 func (ctx *OutputFormatContext) NewStream(codec *Codec) *Stream {
-	var c *C.AVCodec
+	var c *avcodec.Codec
 	if codec != nil {
-		c = codec.codec
+		c = codec._codec
 	}
 
-	stream := C.avformat_new_stream(ctx.ctx, c)
+	stream := avformat.NewStream(ctx._formatContext, c)
 	if stream == nil {
 		panic(ErrNoMem)
 	}
 
-	stream.id = C.int(ctx.ctx.nb_streams) - 1
+	stream.ID = int32(ctx._formatContext.NbStreams - 1)
 
 	return &Stream{
-		stream:    stream,
-		formatCtx: ctx.ctx,
+		_stream:   stream,
+		formatCtx: ctx._formatContext,
 	}
 }
 
 func (ctx *OutputFormatContext) init() error {
 	ctx.initOnce.Do(func() {
-		if ctx.ctx.flags&C.AVFMT_NOFILE == 0 && ctx.dst != nil {
+		if ctx.Flags&C.AVFMT_NOFILE == 0 && ctx.dst != nil {
 			if ctx.dst == nil {
 				ctx.initErr = errors.New("missing output dest")
 				return
 			}
 
-			ctx.closeFunc, ctx.initErr = ctx.dst.initIOContext(&ctx.ctx.pb)
+			ctx.closeFunc, ctx.initErr = ctx.dst.initIOContext(&ctx._formatContext.Pb)
 			if ctx.initErr != nil {
 				return
 			}
 		}
 
-		if ctx.initErr = averror(C.avformat_write_header(ctx.ctx, nil)); ctx.initErr != nil {
+		if ctx.initErr = averror(avformat.WriteHeader(ctx._formatContext, nil)); ctx.initErr != nil {
 			return
 		}
 	})
@@ -159,18 +149,18 @@ func (ctx *OutputFormatContext) WritePacket(packet *Packet) error {
 
 	defer runtime.KeepAlive(packet)
 
-	var pkt *C.AVPacket
+	var pkt *avcodec.Packet
 	if packet != nil {
-		pkt = packet.packet
+		pkt = packet._packet
 	}
 
-	return ctx.realError(averror(C.av_interleaved_write_frame(ctx.ctx, pkt)))
+	return ctx.realError(averror(avformat.WriteInterleavedFrame(ctx._formatContext, pkt)))
 }
 
 func (ctx *OutputFormatContext) realError(err error) error {
 	switch err {
 	case errInternalIOError:
-		return pinnedFiles[pin(ctx.ctx.pb.opaque)].err
+		return pinnedFiles[pin(ctx._formatContext.Pb.Opaque)].err
 
 	case errInternalFormatError:
 		return ctx.pinnedData().err
@@ -181,11 +171,11 @@ func (ctx *OutputFormatContext) realError(err error) error {
 
 func (ctx *OutputFormatContext) Close() error {
 	ctx.closeOnce.Do(func() {
-		if ctx.closeErr = averror(C.av_write_trailer(ctx.ctx)); ctx.closeErr != nil {
+		if ctx.closeErr = averror(avformat.WriteTrailer(ctx._formatContext)); ctx.closeErr != nil {
 			return
 		}
 
-		if ctx.ctx.flags&C.AVFMT_NOFILE == 0 {
+		if ctx.Flags&C.AVFMT_NOFILE == 0 {
 			if ctx.closeFunc == nil {
 				return
 			}

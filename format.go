@@ -1,3 +1,5 @@
+// +godefs map struct_AVFormatContext int64
+
 package av
 
 // #include <libavformat/avformat.h>
@@ -11,6 +13,10 @@ import (
 	"reflect"
 	"sync"
 	"unsafe"
+
+	"github.com/ssttevee/go-av/avcodec"
+	"github.com/ssttevee/go-av/avformat"
+	"github.com/ssttevee/go-av/avutil"
 )
 
 type Opener interface {
@@ -50,7 +56,7 @@ func goavIOOpen(s *C.struct_AVFormatContext, pb **C.AVIOContext, url *C.char, fl
 		return returnPinnedFormatContextDataError(s.opaque, err)
 	}
 
-	*pb = allocAvioContext(f, writable)
+	*pb = (*C.AVIOContext)(unsafe.Pointer(allocAvioContext(f, writable)))
 
 	return 0
 }
@@ -66,8 +72,10 @@ func goavIOClose(s *C.struct_AVFormatContext, pb *C.AVIOContext) C.int {
 	return 0
 }
 
+type _formatContext = avformat.Context
+
 type formatContext struct {
-	ctx *C.AVFormatContext
+	*_formatContext
 
 	pinnedDataOnce sync.Once
 }
@@ -84,72 +92,82 @@ func (ctx *formatContext) pinnedData() *pinnedFormatContextData {
 
 		pinnedFormatContextDataEntries[p] = &pinnedFormatContextData{}
 
-		ctx.ctx.opaque = pinptr(p)
+		ctx.Opaque = pinptr(p)
 	})
 
-	return pinnedFormatContextDataEntries[pin(ctx.ctx.opaque)]
+	return pinnedFormatContextDataEntries[pin(ctx.Opaque)]
 }
 
-func (ctx *formatContext) finalizedPinnedData() {
-	if ctx.ctx.opaque == nil {
+func (ctx *formatContext) finalizePinnedData() {
+	if ctx.Opaque == nil {
 		return
 	}
 
-	delete(pinnedFormatContextDataEntries, pin(ctx.ctx.opaque))
+	delete(pinnedFormatContextDataEntries, pin(ctx.Opaque))
 }
 
-func (ctx *formatContext) FindBestStream(mediaType MediaType) (int, *Codec, error) {
-	var codec *C.AVCodec
-	streamIndex, err := avreturn(C.av_find_best_stream(ctx.ctx, mediaType.ctype(), -1, -1, &codec, 0))
+func (ctx *formatContext) FindBestStream(mediaType avformat.MediaType) (int, *Codec, error) {
+	var codec *avcodec.Codec
+	streamIndex, err := avreturn(avformat.FindBestStream(ctx._formatContext, mediaType, -1, -1, &codec, 0))
 	if err == Error(C.AVERROR_STREAM_NOT_FOUND) {
 		return -1, nil, nil
 	} else if err != nil {
 		return 0, nil, err
 	}
 
-	return streamIndex, &Codec{codec: codec}, nil
+	return streamIndex, &Codec{_codec: codec}, nil
 }
 
-func (ctx *formatContext) GuessFramerate(stream *Stream) Rational {
-	return rational(C.av_guess_frame_rate(ctx.ctx, stream.stream, nil))
+func (ctx *formatContext) GuessFramerate(stream *Stream) avutil.Rational {
+	return avformat.GuessFrameRate(ctx._formatContext, stream._stream, nil)
 }
 
 func (ctx *formatContext) SetOption(name string, value interface{}) error {
-	return setOption(ctx.ctx.priv_data, name, value, 0)
+	return setOption(ctx.PrivData, name, value, 0)
 }
 
 func (ctx *formatContext) GetOption(name string) (interface{}, error) {
-	return getOption(ctx.ctx.priv_data, name, 0)
+	return getOption(ctx.PrivData, name, 0)
 }
 
-func (ctx *formatContext) NumStream() int {
-	return int(ctx.ctx.nb_streams)
+func (ctx *formatContext) streams() []*avformat.Stream {
+	return *(*[]*avformat.Stream)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(unsafe.Pointer(ctx._formatContext.Streams)), Len: int(ctx.NbStreams), Cap: int(ctx.NbStreams)}))
+}
+
+func (ctx *formatContext) Streams() []*Stream {
+	streams := ctx.streams()
+	ret := make([]*Stream, len(streams))
+	for i, stream := range streams {
+		ret[i] = &Stream{
+			_stream:   stream,
+			formatCtx: ctx._formatContext,
+		}
+	}
+
+	return ret
 }
 
 func (ctx *formatContext) Stream(i int) *Stream {
 	return &Stream{
-		stream:    (*(*[]*C.AVStream)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(unsafe.Pointer(ctx.ctx.streams)), Len: int(ctx.ctx.nb_streams), Cap: int(ctx.ctx.nb_streams)})))[i],
-		formatCtx: ctx.ctx,
+		_stream:   ctx.streams()[i],
+		formatCtx: ctx._formatContext,
 	}
 }
 
-func (ctx *formatContext) URL() string {
-	return C.GoString(ctx.ctx.url)
+func (ctx *formatContext) Url() string {
+	return ctx._formatContext.Url.String()
 }
 
-func (ctx *formatContext) SetURL(url string) {
-	if ctx.ctx.url != nil {
-		C.av_free(unsafe.Pointer(ctx.ctx.url))
+func (ctx *formatContext) SetUrl(url string) {
+	if ctx._formatContext.Url != nil {
+		avutil.Free(unsafe.Pointer(ctx._formatContext.Url))
 	}
 
-	curl := C.CString(url)
-	defer C.free(unsafe.Pointer(curl))
-
-	ctx.ctx.url = C.av_strdup(curl)
+	ctx._formatContext.Url = avutil.DupeString(url)
 }
 
 func (ctx *formatContext) SetOpener(opener Opener) {
 	ctx.pinnedData().opener = opener
-	ctx.ctx.io_open = (*[0]byte)(C.goavIOOpen)
-	ctx.ctx.io_close = (*[0]byte)(C.goavIOClose)
+	ctx.IoOpen = (*[0]byte)(C.goavIOOpen)
+	ctx.IoClose = (*[0]byte)(C.goavIOClose)
 }

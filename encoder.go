@@ -6,6 +6,8 @@ import (
 	"runtime"
 
 	"github.com/pkg/errors"
+	"github.com/ssttevee/go-av/avcodec"
+	"github.com/ssttevee/go-av/avutil"
 )
 
 type EncoderContext struct {
@@ -20,13 +22,13 @@ func NewEncoderContext(codec *Codec, params *CodecParameters) (*EncoderContext, 
 
 	ret := &EncoderContext{
 		codecContext: codecContext{
-			ctx: ctx,
+			_codecContext: ctx,
 		},
 	}
 
 	runtime.SetFinalizer(ret, func(ctx *EncoderContext) {
 		ctx.finalizedPinnedData()
-		C.avcodec_free_context(&ctx.ctx)
+		avcodec.FreeContext(&ctx._codecContext)
 	})
 
 	return ret, nil
@@ -39,16 +41,16 @@ func (ctx *EncoderContext) SendFrame(frame *Frame) error {
 
 	defer runtime.KeepAlive(frame)
 
-	return averror(C.avcodec_send_frame(ctx.ctx, frame.frame))
+	return averror(avcodec.SendFrame(ctx._codecContext, frame._frame))
 }
 
 func (ctx *EncoderContext) ReceivePacketReuse(packet *Packet) error {
-	return averror(C.avcodec_receive_packet(ctx.ctx, packet.prepare()))
+	return averror(avcodec.ReceivePacket(ctx._codecContext, packet.prepare()))
 }
 
 func (ctx *EncoderContext) ReceivePacket() (*Packet, error) {
 	packet := NewPacket()
-	if err := averror(C.avcodec_receive_packet(ctx.ctx, packet.packet)); err != nil {
+	if err := averror(avcodec.ReceivePacket(ctx._codecContext, packet._packet)); err != nil {
 		return nil, err
 	}
 
@@ -56,32 +58,32 @@ func (ctx *EncoderContext) ReceivePacket() (*Packet, error) {
 }
 
 func (ctx *EncoderContext) FramePackets(frame *Frame) ([]*Packet, error) {
-	if hwFrameCtx := ctx.HWFramesContext(); hwFrameCtx != nil && frame.frame.hw_frames_ctx == nil {
+	if ctx._codecContext.HwFramesCtx != nil && frame._frame.HwFramesCtx == nil {
 		hwFrame := NewFrame()
 		defer hwFrame.Unref()
 
-		if err := averror(C.av_hwframe_get_buffer(hwFrameCtx.ctx, hwFrame.frame, 0)); err != nil {
+		if err := averror(avutil.GetHWFrameBuffer(ctx._codecContext.HwFramesCtx, hwFrame._frame, 0)); err != nil {
 			return nil, err
 		}
 
-		if err := averror(C.av_hwframe_transfer_data(hwFrame.frame, frame.frame, 0)); err != nil {
+		if err := averror(avutil.TransferHWFrameData(hwFrame._frame, frame._frame, 0)); err != nil {
 			return nil, err
 		}
 
-		if err := averror(C.av_frame_copy_props(hwFrame.frame, frame.frame)); err != nil {
+		if err := averror(avutil.CopyFrameProps(hwFrame._frame, frame._frame)); err != nil {
 			return nil, err
 		}
 
 		frame = hwFrame
-	} else if hwFrameCtx == nil && frame.frame.hw_frames_ctx != nil {
+	} else if ctx._codecContext.HwFramesCtx == nil && frame._frame.HwFramesCtx != nil {
 		swFrame := NewFrame()
 		defer swFrame.Unref()
 
-		if err := averror(C.av_hwframe_transfer_data(swFrame.frame, frame.frame, 0)); err != nil {
+		if err := averror(avutil.TransferHWFrameData(swFrame._frame, frame._frame, 0)); err != nil {
 			return nil, err
 		}
 
-		if err := averror(C.av_frame_copy_props(swFrame.frame, frame.frame)); err != nil {
+		if err := averror(avutil.CopyFrameProps(swFrame._frame, frame._frame)); err != nil {
 			return nil, err
 		}
 

@@ -4,13 +4,6 @@ package av
 // #include <libavfilter/buffersrc.h>
 // #include <libavfilter/buffersink.h>
 // #include <libavutil/hwcontext.h>
-//
-// typedef struct HWDownloadContext {
-//     const AVClass *class;
-//
-//     AVBufferRef       *hwframes_ref;
-//     AVHWFramesContext *hwframes;
-// } HWDownloadContext;
 import "C"
 import (
 	"reflect"
@@ -19,6 +12,8 @@ import (
 	"unsafe"
 
 	"github.com/pkg/errors"
+	"github.com/ssttevee/go-av/avfilter"
+	"github.com/ssttevee/go-av/avutil"
 )
 
 type FilterNotFoundError string
@@ -27,79 +22,73 @@ func (e FilterNotFoundError) Error() string {
 	return "filter not found: " + string(e)
 }
 
+type _filter = avfilter.Filter
+
 type Filter struct {
-	filter *C.AVFilter
-}
-
-func findFilterByName(name string) *C.AVFilter {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	return C.avfilter_get_by_name(cname)
+	*_filter
 }
 
 func FindFilterByName(name string) (*Filter, error) {
-	filter := findFilterByName(name)
+	filter := avfilter.GetByName(name)
 	if filter == nil {
 		return nil, errors.WithStack(FilterNotFoundError(name))
 	}
 
-	return &Filter{filter: filter}, nil
+	return &Filter{_filter: filter}, nil
 }
 
 type FilterInOut struct {
 	Name          string
 	FilterContext *FilterContext
-	PadIndex      int
+	PadIndex      int32
 }
 
+type _filterGraph = avfilter.Graph
+
 type FilterGraph struct {
-	graph *C.AVFilterGraph
+	*_filterGraph
 
 	initOnce sync.Once
 	initErr  error
 }
 
 func NewFilterGraph() (*FilterGraph, error) {
-	graph := C.avfilter_graph_alloc()
+	graph := avfilter.NewGraph()
 	if graph == nil {
 		panic(ErrNoMem)
 	}
 
-	ret := &FilterGraph{graph: graph}
+	ret := &FilterGraph{_filterGraph: graph}
 
 	runtime.SetFinalizer(ret, func(graph *FilterGraph) {
-		C.avfilter_graph_free(&graph.graph)
+		avfilter.FreeGraph(&graph._filterGraph)
 	})
 
 	return ret, nil
 }
 
-func (g *FilterGraph) wrapFilterIO(io *C.AVFilterInOut) *FilterInOut {
+func (g *FilterGraph) wrapFilterIO(io *avfilter.InOut) *FilterInOut {
 	return &FilterInOut{
-		Name:          C.GoString(io.name),
-		FilterContext: &FilterContext{g: g, ctx: io.filter_ctx},
-		PadIndex:      int(io.pad_idx),
+		Name:          io.Name.String(),
+		FilterContext: &FilterContext{g: g, _filterContext: io.FilterCtx},
+		PadIndex:      io.PadIdx,
 	}
 }
 
 func (g *FilterGraph) Parse(desc string) (inputs, outputs []*FilterInOut, _ error) {
-	cdesc := C.CString(desc)
-	defer C.free(unsafe.Pointer(cdesc))
-
-	var cinputs, coutputs *C.AVFilterInOut
-	if err := averror(C.avfilter_graph_parse2(g.graph, cdesc, &cinputs, &coutputs)); err != nil {
+	var cinputs, coutputs *avfilter.InOut
+	if err := averror(avfilter.ParseGraph(g._filterGraph, desc, &cinputs, &coutputs)); err != nil {
 		return nil, nil, err
 	}
 
-	defer C.avfilter_inout_free(&cinputs)
-	defer C.avfilter_inout_free(&coutputs)
+	defer avfilter.FreeInOut(&cinputs)
+	defer avfilter.FreeInOut(&coutputs)
 
-	for current := cinputs; current != nil; current = current.next {
+	for current := cinputs; current != nil; current = current.Next {
 		inputs = append(inputs, g.wrapFilterIO(current))
 	}
 
-	for current := coutputs; current != nil; current = current.next {
+	for current := coutputs; current != nil; current = current.Next {
 		outputs = append(outputs, g.wrapFilterIO(current))
 	}
 
@@ -108,35 +97,29 @@ func (g *FilterGraph) Parse(desc string) (inputs, outputs []*FilterInOut, _ erro
 
 func (g *FilterGraph) init() error {
 	g.initOnce.Do(func() {
-		g.initErr = averror(C.avfilter_graph_config(g.graph, nil))
+		g.initErr = averror(avfilter.ConfigGraph(g._filterGraph, nil))
 	})
 
 	return g.initErr
 }
 
-func (g *FilterGraph) filters() []*C.AVFilterContext {
-	return *(*[]*C.AVFilterContext)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(g.graph.filters)),
-		Len:  int(g.graph.nb_filters),
-		Cap:  int(g.graph.nb_filters),
+func (g *FilterGraph) filters() []*avfilter.Context {
+	return *(*[]*avfilter.Context)(unsafe.Pointer(&reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(g._filterGraph.Filters)),
+		Len:  int(g._filterGraph.NbFilters),
+		Cap:  int(g._filterGraph.NbFilters),
 	}))
 }
 
 func (g *FilterGraph) SetHWDeviceContext(ctx *HWDeviceContext) {
 	for _, filter := range g.filters() {
-		filter.hw_device_ctx = ctx.ref()
+		filter.HwDeviceCtx = ctx.ref()
 	}
 }
 
-func (g *FilterGraph) newFilter(filter *Filter, name, args string) (*C.AVFilterContext, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	cargs := C.CString(args)
-	defer C.free(unsafe.Pointer(cargs))
-
-	var ctx *C.AVFilterContext
-	if err := averror(C.avfilter_graph_create_filter(&ctx, filter.filter, cname, cargs, nil, g.graph)); err != nil {
+func (g *FilterGraph) newFilter(filter *Filter, name, args string) (*avfilter.Context, error) {
+	var ctx *avfilter.Context
+	if err := averror(avfilter.CreateFilterGraph(&ctx, filter._filter, name, args, nil, g._filterGraph)); err != nil {
 		return nil, err
 	}
 
@@ -150,8 +133,8 @@ func (g *FilterGraph) NewFilter(filter *Filter, name, args string) (*FilterConte
 	}
 
 	return &FilterContext{
-		g:   g,
-		ctx: ctx,
+		g:              g,
+		_filterContext: ctx,
 	}, nil
 }
 
@@ -165,12 +148,14 @@ func (g *FilterGraph) NewFilterByName(filterName, name, args string) (*FilterCon
 }
 
 func linkFilters(src *FilterContext, srcPadIndex int, dst *FilterContext, dstPadIndex int) error {
-	return averror(C.avfilter_link(src.ctx, C.uint(srcPadIndex), dst.ctx, C.uint(dstPadIndex)))
+	return averror(avfilter.Link(src._filterContext, uint32(srcPadIndex), dst._filterContext, uint32(dstPadIndex)))
 }
 
+type _filterContext = avfilter.Context
+
 type FilterContext struct {
-	g   *FilterGraph
-	ctx *C.AVFilterContext
+	*_filterContext
+	g *FilterGraph
 }
 
 func (ctx *FilterContext) LinkTo(padIndex int, dst *FilterContext, dstPadIndex int) error {
@@ -178,11 +163,7 @@ func (ctx *FilterContext) LinkTo(padIndex int, dst *FilterContext, dstPadIndex i
 }
 
 func (ctx *FilterContext) Name() string {
-	return C.GoString(ctx.ctx.name)
-}
-
-func (ctx *FilterContext) HWDownloadContext() *C.HWDownloadContext {
-	return (*C.HWDownloadContext)(ctx.ctx.priv)
+	return ctx._filterContext.Name.String()
 }
 
 func (ctx *FilterContext) LinkFrom(padIndex int, src *FilterContext, srcPadIndex int) error {
@@ -197,41 +178,41 @@ func (g *FilterGraph) NewBufferSource(name string, decoder *DecoderContext) (*Bu
 		return nil, err
 	}
 
-	par := C.av_buffersrc_parameters_alloc()
+	par := avfilter.NewBufferSourceParameters()
 	if par == nil {
 		panic(ErrNoMem)
 	}
 
-	defer C.av_free(unsafe.Pointer(par))
+	defer avutil.Free(unsafe.Pointer(par))
 
-	if decoder.ctx.hw_frames_ctx != nil {
-		par.hw_frames_ctx = C.av_buffer_ref(decoder.ctx.hw_frames_ctx)
-		if par.hw_frames_ctx == nil {
+	if decoder._codecContext.HwFramesCtx != nil {
+		par.HwFramesCtx = avutil.RefBuffer(decoder._codecContext.HwFramesCtx)
+		if par.HwFramesCtx == nil {
 			panic(ErrNoMem)
 		}
 	}
 
-	par.format = C.int(decoder.PixelFormat().ctype())
+	par.Format = decoder.PixFmt
 
 	ctx, err := g.newFilter(filter, name, decoder.BufferSourceArgs())
 	if err != nil {
 		return nil, err
 	}
 
-	if decoder.ctx.hw_device_ctx != nil {
-		ctx.hw_device_ctx = C.av_buffer_ref(decoder.ctx.hw_device_ctx)
-		if ctx.hw_device_ctx == nil {
+	if decoder._codecContext.HwFramesCtx != nil {
+		ctx.HwDeviceCtx = avutil.RefBuffer(decoder._codecContext.HwFramesCtx)
+		if ctx.HwDeviceCtx == nil {
 			panic(ErrNoMem)
 		}
 	}
 
-	if err := averror(C.av_buffersrc_parameters_set(ctx, par)); err != nil {
+	if err := averror(avfilter.SetBufferSourceParameters(ctx, par)); err != nil {
 		return nil, err
 	}
 
 	return &BufferSource{
-		g:   g,
-		ctx: ctx,
+		g:              g,
+		_filterContext: ctx,
 	}, nil
 }
 
@@ -242,7 +223,7 @@ func (src *BufferSource) WriteFrame(frame *Frame) error {
 
 	defer runtime.KeepAlive(frame)
 
-	return averror(C.av_buffersrc_write_frame(src.ctx, frame.frame))
+	return averror(avfilter.WriteBufferSourceFrame(src._filterContext, frame._frame))
 }
 
 func (src *BufferSource) LinkTo(dst *FilterContext, dstPadIndex int) error {
@@ -263,8 +244,8 @@ func (g *FilterGraph) NewBufferSink(name string) (*BufferSink, error) {
 	}
 
 	return &BufferSink{
-		g:   g,
-		ctx: ctx,
+		g:              g,
+		_filterContext: ctx,
 	}, nil
 }
 
@@ -273,7 +254,7 @@ func (sink *BufferSink) ReadFrameReuse(frame *Frame) error {
 		return err
 	}
 
-	return averror(C.av_buffersink_get_frame(sink.ctx, frame.prepare()))
+	return averror(avfilter.GetBufferSinkFrame(sink._filterContext, frame.prepare()))
 }
 
 func (sink *BufferSink) ReadFrame() (*Frame, error) {

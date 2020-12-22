@@ -5,7 +5,8 @@ import "C"
 import (
 	"io"
 	"runtime"
-	"unsafe"
+
+	"github.com/ssttevee/go-av/avformat"
 )
 
 type InputFormatContext struct {
@@ -15,26 +16,23 @@ type InputFormatContext struct {
 }
 
 func finalizeInputFormatContext(ctx *InputFormatContext) {
-	ctx.finalizedPinnedData()
-	C.avformat_close_input(&ctx.ctx)
+	ctx.finalizePinnedData()
+	avformat.CloseInput(&ctx._formatContext)
 }
 
 func OpenInputFile(input string) (*InputFormatContext, error) {
-	cinput := C.CString(input)
-	defer C.free(unsafe.Pointer(cinput))
-
-	var ctx *C.AVFormatContext
-	if err := averror(C.avformat_open_input(&ctx, cinput, nil, nil)); err != nil {
+	var ctx *avformat.Context
+	if err := averror(avformat.OpenInput(&ctx, input, nil, nil)); err != nil {
 		return nil, err
 	}
 
-	if err := averror(C.avformat_find_stream_info(ctx, nil)); err != nil {
+	if err := averror(avformat.FindStreamInfo(ctx, nil)); err != nil {
 		return nil, err
 	}
 
 	ret := &InputFormatContext{
 		formatContext: formatContext{
-			ctx: ctx,
+			_formatContext: ctx,
 		},
 	}
 
@@ -46,28 +44,29 @@ func OpenInputFile(input string) (*InputFormatContext, error) {
 func OpenInputReader(r io.Reader) (*InputFormatContext, error) {
 	ioctx := newIOContext(r, false)
 
-	ctx := C.avformat_alloc_context()
+	ctx := avformat.NewContext()
 	if ctx == nil {
 		panic(ErrNoMem)
 	}
 
-	ctx.opaque = nil
-	ctx.pb = ioctx.ctx
+	ctx.Opaque = nil
+	ctx.Flags = int32(C.AVFMT_FLAG_CUSTOM_IO)
+	ctx.Pb = ioctx._ioContext
 
 	ret := &InputFormatContext{
 		formatContext: formatContext{
-			ctx: ctx,
+			_formatContext: ctx,
 		},
 		ioctx: ioctx,
 	}
 
-	runtime.SetFinalizer(ret, finalizeInputFormatContext)
-
-	if err := averror(C.avformat_open_input(&ctx, nil, nil, nil)); err != nil {
+	if err := averror(avformat.OpenInput(&ctx, "", nil, nil)); err != nil {
 		return nil, err
 	}
 
-	if err := averror(C.avformat_find_stream_info(ctx, nil)); err != nil {
+	runtime.SetFinalizer(ret, finalizeInputFormatContext)
+
+	if err := averror(avformat.FindStreamInfo(ctx, nil)); err != nil {
 		return nil, err
 	}
 
@@ -75,12 +74,12 @@ func OpenInputReader(r io.Reader) (*InputFormatContext, error) {
 }
 
 func (ctx *InputFormatContext) ReadPacketReuse(packet *Packet) error {
-	return averror(C.av_read_frame(ctx.ctx, packet.prepare()))
+	return averror(avformat.ReadFrame(ctx._formatContext, packet.prepare()))
 }
 
 func (ctx *InputFormatContext) ReadPacket() (*Packet, error) {
 	packet := NewPacket()
-	if err :=  averror(C.av_read_frame(ctx.ctx, packet.packet)); err != nil {
+	if err := averror(avformat.ReadFrame(ctx._formatContext, packet._packet)); err != nil {
 		return nil, err
 	}
 

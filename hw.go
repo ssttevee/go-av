@@ -6,48 +6,37 @@ import "C"
 import (
 	"runtime"
 	"unsafe"
+
+	"github.com/ssttevee/go-av/avutil"
 )
-
-type HWDeviceType C.enum_AVHWDeviceType
-
-const (
-	Cuda = HWDeviceType(C.AV_HWDEVICE_TYPE_CUDA)
-)
-
-func (t HWDeviceType) ctype() C.enum_AVHWDeviceType {
-	return C.enum_AVHWDeviceType(t)
-}
 
 type HWDeviceContext struct {
-	ctx *C.AVBufferRef
+	ctx *avutil.BufferRef
 
 	frames *HWFramesContext
 }
 
-func newHWDeviceContext(ctx *C.AVBufferRef) *HWDeviceContext {
+func newHWDeviceContext(ctx *avutil.BufferRef) *HWDeviceContext {
 	ret := &HWDeviceContext{ctx: ctx}
 
 	runtime.SetFinalizer(ret, func(ctx *HWDeviceContext) {
-		C.av_buffer_unref(&ctx.ctx)
+		avutil.UnrefBuffer(&ctx.ctx)
 	})
 
 	return ret
 }
 
-func NewHWDeviceContext(deviceType HWDeviceType, device string) (*HWDeviceContext, error) {
-	cdevice := C.CString(device)
-	defer C.free(unsafe.Pointer(cdevice))
-
-	var ctx *C.AVBufferRef
-	if err := averror(C.av_hwdevice_ctx_create(&ctx, deviceType.ctype(), cdevice, nil, 0)); err != nil {
+func NewHWDeviceContext(deviceType avutil.HWDeviceType, device string) (*HWDeviceContext, error) {
+	var ctx *avutil.BufferRef
+	if err := averror(avutil.NewHWDeviceContext(&ctx, deviceType, device, nil, 0)); err != nil {
 		return nil, err
 	}
 
 	return newHWDeviceContext(ctx), nil
 }
 
-func (ctx *HWDeviceContext) ref() *C.AVBufferRef {
-	ref := C.av_buffer_ref(ctx.ctx)
+func (ctx *HWDeviceContext) ref() *avutil.BufferRef {
+	ref := avutil.RefBuffer(ctx.ctx)
 	if ref == nil {
 		panic(ErrNoMem)
 	}
@@ -55,70 +44,37 @@ func (ctx *HWDeviceContext) ref() *C.AVBufferRef {
 	return ref
 }
 
+type _hwFramesContext = avutil.HWFramesContext
+
 type HWFramesContext struct {
-	ctx *C.AVBufferRef
+	*_hwFramesContext
+	buf *avutil.BufferRef
 }
 
-func newHWFramesContext(ctx *C.AVBufferRef) *HWFramesContext {
-	if ctx == nil {
+func newHWFramesContext(buf *avutil.BufferRef) *HWFramesContext {
+	if buf == nil {
 		panic(ErrNoMem)
 	}
 
-	ret := &HWFramesContext{ctx: ctx}
+	ret := &HWFramesContext{
+		_hwFramesContext: (*avutil.HWFramesContext)(unsafe.Pointer(buf.Data)),
+		buf:              buf,
+	}
 
 	runtime.SetFinalizer(ret, func(ctx *HWFramesContext) {
-		C.av_buffer_unref(&ctx.ctx)
+		ctx._hwFramesContext = nil
+		avutil.UnrefBuffer(&ctx.buf)
 	})
 
 	return ret
 }
 
 func NewHWFramesContext(deviceCtx *HWDeviceContext) *HWFramesContext {
-	return newHWFramesContext(C.av_hwframe_ctx_alloc(deviceCtx.ctx))
-}
-
-func (ctx *HWFramesContext) ctype() *C.AVHWFramesContext {
-	return (*C.AVHWFramesContext)(unsafe.Pointer(ctx.ctx.data))
-}
-
-func (ctx *HWFramesContext) PixelFormat() PixelFormat {
-	return PixelFormat(ctx.ctype().format)
-}
-
-func (ctx *HWFramesContext) SetPixelFormat(format PixelFormat) {
-	hwFramesContext := ctx.ctype()
-	hwFramesContext.format = format.ctype()
-}
-
-func (ctx *HWFramesContext) SWPixelFormat() PixelFormat {
-	return PixelFormat(ctx.ctype().sw_format)
-}
-
-func (ctx *HWFramesContext) SetSWPixelFormat(format PixelFormat) {
-	hwFramesContext := ctx.ctype()
-	hwFramesContext.sw_format = format.ctype()
-}
-
-func (ctx *HWFramesContext) Width() int {
-	return int(ctx.ctype().width)
-}
-
-func (ctx *HWFramesContext) SetWidth(width int) {
-	hwFramesContext := ctx.ctype()
-	hwFramesContext.width = C.int(width)
-}
-
-func (ctx *HWFramesContext) Height() int {
-	return int(ctx.ctype().height)
-}
-
-func (ctx *HWFramesContext) SetHeight(height int) {
-	hwFramesContext := ctx.ctype()
-	hwFramesContext.height = C.int(height)
+	return newHWFramesContext(avutil.NewHWFramesContext(deviceCtx.ctx))
 }
 
 func (ctx *HWFramesContext) Init() error {
-	return averror(C.av_hwframe_ctx_init(ctx.ctx))
+	return averror(avutil.InitHWFramesContext(ctx.buf))
 }
 
 func (ctx *HWFramesContext) Eq(ctx2 *HWFramesContext) bool {
@@ -130,11 +86,11 @@ func (ctx *HWFramesContext) Eq(ctx2 *HWFramesContext) bool {
 		return true
 	}
 
-	return ctx.ctx.data == ctx2.ctx.data
+	return ctx.buf.Data == ctx2.buf.Data
 }
 
-func (ctx *HWFramesContext) ref() *C.AVBufferRef {
-	ref := C.av_buffer_ref(ctx.ctx)
+func (ctx *HWFramesContext) ref() *avutil.BufferRef {
+	ref := avutil.RefBuffer(ctx.buf)
 	if ref == nil {
 		panic(ErrNoMem)
 	}

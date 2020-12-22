@@ -5,6 +5,8 @@ import "C"
 import (
 	"fmt"
 	"runtime"
+
+	"github.com/ssttevee/go-av/avcodec"
 )
 
 type DecoderContext struct {
@@ -19,13 +21,13 @@ func NewDecoderContext(codec *Codec, params *CodecParameters) (*DecoderContext, 
 
 	ret := &DecoderContext{
 		codecContext: codecContext{
-			ctx: ctx,
+			_codecContext: ctx,
 		},
 	}
 
 	runtime.SetFinalizer(ret, func(ctx *DecoderContext) {
 		ctx.finalizedPinnedData()
-		C.avcodec_free_context(&ctx.ctx)
+		avcodec.FreeContext(&ctx._codecContext)
 	})
 
 	return ret, nil
@@ -33,11 +35,11 @@ func NewDecoderContext(codec *Codec, params *CodecParameters) (*DecoderContext, 
 
 func (ctx *DecoderContext) BufferSourceArgs() string {
 	var framerateArg string
-	if framerate := ctx.Framerate(); !framerate.IsZero() {
-		framerateArg = ":frame_rate=" + framerate.String()
+	if !ctx.Framerate.IsZero() {
+		framerateArg = ":frame_rate=" + ctx.Framerate.String()
 	}
 
-	return fmt.Sprintf("video_size=%dx%d:pix_fmt=%d:time_base=%s:pixel_aspect=%s", ctx.Width(), ctx.Height(), int(ctx.PixelFormat()), ctx.TimeBase(), ctx.SampleAspectRatio()) + framerateArg
+	return fmt.Sprintf("video_size=%dx%d:pix_fmt=%d:time_base=%s:pixel_aspect=%s", ctx.Width, ctx.Height, int(ctx.PixFmt), ctx.TimeBase, ctx.SampleAspectRatio) + framerateArg
 }
 
 func (ctx *DecoderContext) SendPacket(packet *Packet) error {
@@ -45,16 +47,16 @@ func (ctx *DecoderContext) SendPacket(packet *Packet) error {
 		return err
 	}
 
-	return averror(C.avcodec_send_packet(ctx.ctx, packet.packet))
+	return averror(avcodec.SendPacket(ctx._codecContext, packet._packet))
 }
 
 func (ctx *DecoderContext) ReceiveFrameReuse(frame *Frame) error {
-	return averror(C.avcodec_receive_frame(ctx.ctx, frame.prepare()))
+	return averror(avcodec.ReceiveFrame(ctx._codecContext, frame.prepare()))
 }
 
 func (ctx *DecoderContext) ReceiveFrame() (*Frame, error) {
 	frame := NewFrame()
-	if err := averror(C.avcodec_receive_frame(ctx.ctx, frame.frame)); err != nil {
+	if err := averror(avcodec.ReceiveFrame(ctx._codecContext, frame._frame)); err != nil {
 		return nil, err
 	}
 

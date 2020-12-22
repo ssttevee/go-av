@@ -44,7 +44,7 @@ func (e Error) Error() string {
 	return C.GoString(&buf[0])
 }
 
-func averror(code C.int) error {
+func averror(code int32) error {
 	if code == 0 {
 		return nil
 	}
@@ -60,7 +60,7 @@ func averror(code C.int) error {
 	return errors.WithStack(Error(code))
 }
 
-func avreturn(code C.int) (int, error) {
+func avreturn(code int32) (int, error) {
 	if code > 0 {
 		return int(code), nil
 	}

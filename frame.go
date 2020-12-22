@@ -4,43 +4,47 @@ package av
 import "C"
 import (
 	"runtime"
+
+	"github.com/ssttevee/go-av/avutil"
 )
 
+type _frame = avutil.Frame
+
 type Frame struct {
-	frame *C.AVFrame
+	*_frame
 }
 
 func NewFrame() *Frame {
-	frame := C.av_frame_alloc()
+	frame := avutil.NewFrame()
 	if frame == nil {
 		panic(ErrNoMem)
 	}
 
 	ret := &Frame{
-		frame: frame,
+		_frame: frame,
 	}
 
 	runtime.SetFinalizer(ret, func(f *Frame) {
-		C.av_frame_free(&f.frame)
+		avutil.FreeFrame(&f._frame)
 	})
 
 	return ret
 }
 
-func (f *Frame) prepare() *C.AVFrame {
+func (f *Frame) prepare() *avutil.Frame {
 	f.Unref()
 
-	return f.frame
+	return f._frame
 }
 
 func (f *Frame) Unref() {
 	defer runtime.KeepAlive(f)
 
-	C.av_frame_unref(f.frame)
+	avutil.UnrefFrame(f._frame)
 }
 
 func (f *Frame) CopyTo(f2 *Frame) error {
-	return averror(C.av_frame_ref(f.frame, f2.frame))
+	return averror(avutil.RefFrame(f._frame, f2._frame))
 }
 
 func (f *Frame) Clone() (*Frame, error) {
@@ -52,10 +56,10 @@ func (f *Frame) Clone() (*Frame, error) {
 	return clone, nil
 }
 
-func (f *Frame) HWFramesContext() *HWFramesContext {
-	if f.frame.hw_frames_ctx == nil {
+func (f *Frame) HwFramesCtx() *HWFramesContext {
+	if f._frame.HwFramesCtx == nil {
 		return nil
 	}
 
-	return newHWFramesContext(C.av_buffer_ref(f.frame.hw_frames_ctx))
+	return newHWFramesContext(avutil.RefBuffer(f._frame.HwFramesCtx))
 }

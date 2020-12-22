@@ -10,6 +10,9 @@ import (
 	"reflect"
 	"sync"
 	"unsafe"
+
+	"github.com/ssttevee/go-av/avcodec"
+	"github.com/ssttevee/go-av/avutil"
 )
 
 type CodecNotFoundError string
@@ -18,57 +21,39 @@ func (e CodecNotFoundError) Error() string {
 	return "codec not found: " + string(e)
 }
 
-type CodecID C.enum_AVCodecID
-
-const (
-	H264 = CodecID(C.AV_CODEC_ID_H264)
-)
-
-func (id CodecID) String() string {
-	return C.GoString(C.avcodec_get_name(id.ctype()))
-}
-
-func (id CodecID) ctype() C.enum_AVCodecID {
-	return C.enum_AVCodecID(id)
-}
+type _codec = avcodec.Codec
 
 type Codec struct {
-	codec *C.AVCodec
+	*_codec
 }
 
 func FindDecoderCodecByName(name string) (*Codec, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	codec := C.avcodec_find_decoder_by_name(cname)
+	codec := avcodec.FindDecoderByName(name)
 	if codec == nil {
 		return nil, CodecNotFoundError(name)
 	}
 
 	return &Codec{
-		codec: codec,
+		_codec: codec,
 	}, nil
 }
 
 func FindEncoderCodecByName(name string) (*Codec, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	codec := C.avcodec_find_encoder_by_name(cname)
+	codec := avcodec.FindEncoderByName(name)
 	if codec == nil {
 		return nil, CodecNotFoundError(name)
 	}
 
 	return &Codec{
-		codec: codec,
+		_codec: codec,
 	}, nil
 }
 
 func (c *Codec) Name() string {
-	return C.GoString(c.codec.name)
+	return c._codec.Name.String()
 }
 
-func countPixelFormats(fmts *C.enum_AVPixelFormat) int {
+func countPixelFormats(fmts *avutil.PixelFormat) int {
 	if fmts == nil {
 		return 0
 	}
@@ -77,7 +62,7 @@ func countPixelFormats(fmts *C.enum_AVPixelFormat) int {
 
 	var n int
 	ptr := uintptr(unsafe.Pointer(fmts))
-	for *(*PixelFormat)(unsafe.Pointer(ptr)) != -1 {
+	for *(*avutil.PixelFormat)(unsafe.Pointer(ptr)) != -1 {
 		n++
 		ptr += size
 	}
@@ -85,24 +70,37 @@ func countPixelFormats(fmts *C.enum_AVPixelFormat) int {
 	return n
 }
 
-func (c *Codec) NumPixelFormat() int {
-	return countPixelFormats(c.codec.pix_fmts)
+func pixelFormatSlice(ptr *avutil.PixelFormat) []avutil.PixelFormat {
+	n := countPixelFormats(ptr)
+	return *(*[]avutil.PixelFormat)(unsafe.Pointer(&reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(ptr)),
+		Len:  n,
+		Cap:  n,
+	}))
 }
 
-func (c *Codec) PixelFormat(i int) PixelFormat {
-	return *(*PixelFormat)(unsafe.Pointer(uintptr(unsafe.Pointer(c.codec.pix_fmts)) + unsafe.Sizeof(*c.codec.pix_fmts)*uintptr(i)))
+func (c *Codec) NbPixFmts() int {
+	return countPixelFormats(c._codec.PixFmts)
 }
 
-func (c *Codec) NumSampleFormat() int {
-	if c.codec.sample_fmts == nil {
+func (c *Codec) PixFmts() []avutil.PixelFormat {
+	return pixelFormatSlice(c._codec.PixFmts)
+}
+
+func (c *Codec) PixFmt(i int) avutil.PixelFormat {
+	return *(*avutil.PixelFormat)(unsafe.Pointer(uintptr(unsafe.Pointer(c._codec.PixFmts)) + unsafe.Sizeof(*c._codec.PixFmts)*uintptr(i)))
+}
+
+func countSampleFormats(fmts *avutil.SampleFormat) int {
+	if fmts == nil {
 		return 0
 	}
 
-	size := unsafe.Sizeof(*c.codec.sample_fmts)
+	size := unsafe.Sizeof(*fmts)
 
 	var n int
-	ptr := uintptr(unsafe.Pointer(c.codec.sample_fmts))
-	for *(*PixelFormat)(unsafe.Pointer(ptr)) != -1 {
+	ptr := uintptr(unsafe.Pointer(fmts))
+	for *(*avutil.SampleFormat)(unsafe.Pointer(ptr)) != -1 {
 		n++
 		ptr += size
 	}
@@ -110,18 +108,50 @@ func (c *Codec) NumSampleFormat() int {
 	return n
 }
 
-func (c *Codec) SampleFormat(i int) SampleFormat {
-	return *(*SampleFormat)(unsafe.Pointer(uintptr(unsafe.Pointer(c.codec.sample_fmts)) + unsafe.Sizeof(*c.codec.sample_fmts)*uintptr(i)))
+func sampleFormatSlice(ptr *avutil.SampleFormat) []avutil.SampleFormat {
+	n := countSampleFormats(ptr)
+	return *(*[]avutil.SampleFormat)(unsafe.Pointer(&reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(ptr)),
+		Len:  n,
+		Cap:  n,
+	}))
 }
 
+func (c *Codec) NbSampleFmts() int {
+	if c._codec.SampleFmts == nil {
+		return 0
+	}
+
+	size := unsafe.Sizeof(*c._codec.SampleFmts)
+
+	var n int
+	ptr := uintptr(unsafe.Pointer(c._codec.SampleFmts))
+	for *(*avutil.SampleFormat)(unsafe.Pointer(ptr)) != -1 {
+		n++
+		ptr += size
+	}
+
+	return n
+}
+
+func (c *Codec) SampleFmts() []avutil.SampleFormat {
+	return sampleFormatSlice(c._codec.SampleFmts)
+}
+
+func (c *Codec) SampleFmt(i int) avutil.SampleFormat {
+	return *(*avutil.SampleFormat)(unsafe.Pointer(uintptr(unsafe.Pointer(c._codec.SampleFmts)) + unsafe.Sizeof(*c._codec.SampleFmts)*uintptr(i)))
+}
+
+type _codecParameters = avcodec.Parameters
+
 type CodecParameters struct {
-	parameters *C.AVCodecParameters
+	*_codecParameters
 }
 
 type pinnedCodecContextData struct {
 	err error
 
-	getFormatFunc func([]PixelFormat) PixelFormat
+	getFormatFunc func([]avutil.PixelFormat) avutil.PixelFormat
 }
 
 var pinnedCodecContextDataEntries = map[pinType]*pinnedCodecContextData{}
@@ -133,16 +163,13 @@ func returnPinnedCodecContextDataError(p unsafe.Pointer, err error) C.int {
 
 //export goavCodecContextGetFormat
 func goavCodecContextGetFormat(ctx *C.AVCodecContext, choices *C.enum_AVPixelFormat) C.enum_AVPixelFormat {
-	n := countPixelFormats(choices)
-	return pinnedCodecContextDataEntries[pin(ctx.opaque)].getFormatFunc(*(*[]PixelFormat)(unsafe.Pointer(&reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(choices)),
-		Len:  n,
-		Cap:  n,
-	}))).ctype()
+	return C.enum_AVPixelFormat(pinnedCodecContextDataEntries[pin(ctx.opaque)].getFormatFunc(pixelFormatSlice((*avutil.PixelFormat)(unsafe.Pointer(choices)))))
 }
 
+type _codecContext = avcodec.Context
+
 type codecContext struct {
-	ctx *C.AVCodecContext
+	*_codecContext
 
 	pinnedDataOnce sync.Once
 
@@ -150,14 +177,14 @@ type codecContext struct {
 	initErr  error
 }
 
-func newCodecContext(codec *Codec, params *CodecParameters) (*C.AVCodecContext, error) {
-	ctx := C.avcodec_alloc_context3(codec.codec)
+func newCodecContext(codec *Codec, params *CodecParameters) (*avcodec.Context, error) {
+	ctx := avcodec.NewContext(codec._codec)
 	if ctx == nil {
 		panic(ErrNoMem)
 	}
 
 	if params != nil {
-		if err := averror(C.avcodec_parameters_to_context(ctx, params.parameters)); err != nil {
+		if err := averror(avcodec.ParametersToContext(ctx, params._codecParameters)); err != nil {
 			return nil, err
 		}
 	}
@@ -177,235 +204,101 @@ func (ctx *codecContext) pinnedData() *pinnedCodecContextData {
 
 		pinnedCodecContextDataEntries[p] = &pinnedCodecContextData{}
 
-		ctx.ctx.opaque = pinptr(p)
+		ctx.Opaque = pinptr(p)
 	})
 
-	return pinnedCodecContextDataEntries[pin(ctx.ctx.opaque)]
+	return pinnedCodecContextDataEntries[pin(ctx.Opaque)]
 }
 
 func (ctx *codecContext) finalizedPinnedData() {
-	if ctx.ctx.opaque == nil {
+	if ctx.Opaque == nil {
 		return
 	}
 
-	delete(pinnedCodecContextDataEntries, pin(ctx.ctx.opaque))
+	delete(pinnedCodecContextDataEntries, pin(ctx.Opaque))
 }
 
 func (ctx *codecContext) Codec() *Codec {
-	return &Codec{codec: ctx.ctx.codec}
+	return &Codec{
+		_codec: ctx._codecContext.Codec,
+	}
 }
 
-func (ctx *codecContext) CodecID() CodecID {
-	return CodecID(ctx.ctx.codec_id)
+func (ctx *codecContext) CodecID() avcodec.ID {
+	return avcodec.ID(ctx._codecContext.CodecID)
 }
 
 func (ctx *codecContext) CodecParameters() *CodecParameters {
-	var parameters C.AVCodecParameters
-	if err := averror(C.avcodec_parameters_from_context(&parameters, ctx.ctx)); err != nil {
+	var parameters avcodec.Parameters
+	if err := averror(avcodec.ParametersFromContext(&parameters, ctx._codecContext)); err != nil {
 		panic(err)
 	}
 
 	return &CodecParameters{
-		parameters: &parameters,
+		_codecParameters: &parameters,
 	}
 }
 
-func (ctx *codecContext) SetGetFormat(f func([]PixelFormat) PixelFormat) {
+func (ctx *codecContext) SetGetFormat(f func([]avutil.PixelFormat) avutil.PixelFormat) {
 	if f == nil {
-		ctx.ctx.get_format = (*[0]byte)(C.avcodec_default_get_format)
+		ctx.GetFormat = (*[0]byte)(C.avcodec_default_get_format)
 	} else {
 		ctx.pinnedData().getFormatFunc = f
-		ctx.ctx.get_format = (*[0]byte)(C.goavCodecContextGetFormat)
+		ctx.GetFormat = (*[0]byte)(C.goavCodecContextGetFormat)
 	}
 }
 
-func (ctx *codecContext) HWDeviceContext() *HWDeviceContext {
-	if ctx.ctx.hw_device_ctx == nil {
+func (ctx *codecContext) HwDeviceCtx() *HWDeviceContext {
+	if ctx._codecContext.HwDeviceCtx == nil {
 		return nil
 	}
 
-	return newHWDeviceContext(C.av_buffer_ref(ctx.ctx.hw_device_ctx))
+	return newHWDeviceContext(avutil.RefBuffer(ctx._codecContext.HwDeviceCtx))
 }
 
-func (ctx *codecContext) SetHWDeviceContext(deviceCtx *HWDeviceContext) {
-	if ctx.ctx.hw_device_ctx != nil {
-		C.av_buffer_unref(&ctx.ctx.hw_device_ctx)
+func (ctx *codecContext) SetHwDeviceCtx(deviceCtx *HWDeviceContext) {
+	if ctx._codecContext.HwDeviceCtx != nil {
+		avutil.UnrefBuffer(&ctx._codecContext.HwDeviceCtx)
 	}
 
 	if deviceCtx == nil {
-		ctx.ctx.hw_device_ctx = nil
+		ctx._codecContext.HwDeviceCtx = nil
 	} else {
-		ctx.ctx.hw_device_ctx = deviceCtx.ref()
+		ctx._codecContext.HwDeviceCtx = deviceCtx.ref()
 	}
 }
 
-func (ctx *codecContext) HWFramesContext() *HWFramesContext {
-	if ctx.ctx.hw_frames_ctx == nil {
+func (ctx *codecContext) HwFramesCtx() *HWFramesContext {
+	if ctx._codecContext.HwFramesCtx == nil {
 		return nil
 	}
 
-	return newHWFramesContext(C.av_buffer_ref(ctx.ctx.hw_frames_ctx))
+	return newHWFramesContext(avutil.RefBuffer(ctx._codecContext.HwFramesCtx))
 }
 
-func (ctx *codecContext) SetHWFramesContext(framesCtx *HWFramesContext) {
-	if ctx.ctx.hw_frames_ctx != nil {
-		C.av_buffer_unref(&ctx.ctx.hw_frames_ctx)
+func (ctx *codecContext) SetHwFramesCtx(framesCtx *HWFramesContext) {
+	if ctx._codecContext.HwFramesCtx != nil {
+		avutil.UnrefBuffer(&ctx._codecContext.HwFramesCtx)
 	}
 
 	if framesCtx == nil {
-		ctx.ctx.hw_frames_ctx = nil
+		ctx._codecContext.HwFramesCtx = nil
 	} else {
-		ctx.ctx.hw_frames_ctx = framesCtx.ref()
+		ctx._codecContext.HwFramesCtx = framesCtx.ref()
 	}
 }
 
-func (ctx *codecContext) Framerate() Rational {
-	return rational(ctx.ctx.framerate)
-}
-
-func (ctx *codecContext) SetFramerate(framerate Rational) {
-	ctx.ctx.framerate = framerate.ctype()
-}
-
-func (ctx *codecContext) PacketTimeBase() Rational {
-	return rational(ctx.ctx.pkt_timebase)
-}
-
-func (ctx *codecContext) SetPacketTimeBase(timeBase Rational) {
-	ctx.ctx.pkt_timebase = timeBase.ctype()
-}
-
-func (ctx *codecContext) TimeBase() Rational {
-	return rational(ctx.ctx.time_base)
-}
-
-func (ctx *codecContext) SetTimeBase(timeBase Rational) {
-	ctx.ctx.time_base = timeBase.ctype()
-}
-
-func (ctx *codecContext) PixelFormat() PixelFormat {
-	return PixelFormat(ctx.ctx.pix_fmt)
-}
-
-func (ctx *codecContext) SetPixelFormat(format PixelFormat) {
-	ctx.ctx.pix_fmt = format.ctype()
-}
-
-func (ctx *codecContext) SampleAspectRatio() Rational {
-	return rational(ctx.ctx.sample_aspect_ratio)
-}
-
-func (ctx *codecContext) SetSampleAspectRatio(ratio Rational) {
-	ctx.ctx.sample_aspect_ratio = ratio.ctype()
-}
-
-func (ctx *codecContext) ExtraDataSize() int {
-	return int(ctx.ctx.extradata_size)
-}
-
-func (ctx *codecContext) SetExtraDataSize(size int) {
-	ctx.ctx.extradata_size = C.int(size)
-}
-
-func (ctx *codecContext) ExtraData() int {
-	return int(ctx.ctx.extradata_size)
-}
-
-func (ctx *codecContext) SetExtraData(size int) {
-	ctx.ctx.extradata_size = C.int(size)
-}
-
-func (ctx *codecContext) Width() int {
-	return int(ctx.ctx.width)
-}
-
-func (ctx *codecContext) SetWidth(width int) {
-	ctx.ctx.width = C.int(width)
-}
-
-func (ctx *codecContext) Height() int {
-	return int(ctx.ctx.height)
-}
-
-func (ctx *codecContext) SetHeight(height int) {
-	ctx.ctx.height = C.int(height)
-}
-
-func (ctx *codecContext) Bitrate() int64 {
-	return int64(ctx.ctx.bit_rate)
-}
-
-func (ctx *codecContext) SetBitrate(bitrate int64) {
-	ctx.ctx.bit_rate = C.int64_t(bitrate)
-}
-
-func (ctx *codecContext) BufferSize() int {
-	return int(ctx.ctx.rc_buffer_size)
-}
-
-func (ctx *codecContext) SetBufferSize(size int) {
-	ctx.ctx.rc_buffer_size = C.int(size)
-}
-
-func (ctx *codecContext) MaxBitrate() int64 {
-	return int64(ctx.ctx.rc_max_rate)
-}
-
-func (ctx *codecContext) SetMaxBitrate(bitrate int64) {
-	ctx.ctx.rc_max_rate = C.int64_t(bitrate)
-}
-
-func (ctx *codecContext) MinBitrate() int64 {
-	return int64(ctx.ctx.rc_min_rate)
-}
-
-func (ctx *codecContext) SetMinBitrate(bitrate int64) {
-	ctx.ctx.rc_min_rate = C.int64_t(bitrate)
-}
-
-func (ctx *codecContext) Channels() int {
-	return int(ctx.ctx.channels)
-}
-
-func (ctx *codecContext) SetChannels(channels int) {
-	ctx.ctx.channels = C.int(channels)
-}
-
-func (ctx *codecContext) ChannelLayout() uint64 {
-	return uint64(ctx.ctx.channel_layout)
-}
-
-func (ctx *codecContext) SetChannelLayout(layout uint64) {
-	ctx.ctx.channel_layout = C.uint64_t(layout)
-}
-
-func (ctx *codecContext) SampleRate() int {
-	return int(ctx.ctx.sample_rate)
-}
-
-func (ctx *codecContext) SetSampleRate(rate int) {
-	ctx.ctx.sample_rate = C.int(rate)
-}
-
-func (ctx *codecContext) SampleFormat() SampleFormat {
-	return SampleFormat(ctx.ctx.sample_fmt)
-}
-
-func (ctx *codecContext) SetSampleFormat(fmt SampleFormat) {
-	ctx.ctx.sample_fmt = fmt.ctype()
-}
-
 func (ctx *codecContext) SetOption(name string, value interface{}) error {
-	return setOption(ctx.ctx.priv_data, name, value, 0)
+	return setOption(ctx._codecContext.PrivData, name, value, 0)
 }
 
 func (ctx *codecContext) GetOption(name string) (interface{}, error) {
-	return getOption(ctx.ctx.priv_data, name, 0)
+	return getOption(ctx._codecContext.PrivData, name, 0)
 }
 
 func (ctx *codecContext) init() error {
 	ctx.initOnce.Do(func() {
-		ctx.initErr = averror(C.avcodec_open2(ctx.ctx, nil, nil))
+		ctx.initErr = averror(avcodec.Open(ctx._codecContext, nil, nil))
 	})
 
 	return ctx.initErr

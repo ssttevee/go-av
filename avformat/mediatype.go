@@ -1,4 +1,4 @@
-package av
+package avformat
 
 // #include <libavformat/avformat.h>
 import "C"
@@ -9,7 +9,3 @@ const (
 	Audio = MediaType(C.AVMEDIA_TYPE_AUDIO)
 	Video = MediaType(C.AVMEDIA_TYPE_VIDEO)
 )
-
-func (t MediaType) ctype() C.enum_AVMediaType{
-	return C.enum_AVMediaType(t)
-}

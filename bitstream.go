@@ -6,7 +6,8 @@ import (
 	"errors"
 	"runtime"
 	"sync"
-	"unsafe"
+
+	"github.com/ssttevee/go-av/avcodec"
 )
 
 type BitstreamFilterNotFoundError string
@@ -16,14 +17,11 @@ func (e BitstreamFilterNotFoundError) Error() string {
 }
 
 type BitstreamFilter struct {
-	filter *C.AVBitStreamFilter
+	filter *avcodec.BitstreamFilter
 }
 
 func FindBitstreamFilterByName(name string) (*BitstreamFilter, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	filter := C.av_bsf_get_by_name(cname)
+	filter := avcodec.GetBitstreamFilterByName(name)
 	if filter == nil {
 		return nil, BitstreamFilterNotFoundError(name)
 	}
@@ -32,42 +30,42 @@ func FindBitstreamFilterByName(name string) (*BitstreamFilter, error) {
 }
 
 type BitstreamFilterContext struct {
-	ctx *C.AVBSFContext
+	ctx *avcodec.BitstreamFilterContext
 
 	initOnce sync.Once
 	initErr  error
 }
 
 func NewBitstreamFilterContext(filter *BitstreamFilter) (*BitstreamFilterContext, error) {
-	var ctx *C.AVBSFContext
-	if err := averror(C.av_bsf_alloc(filter.filter, &ctx)); err != nil {
+	var ctx *avcodec.BitstreamFilterContext
+	if err := averror(avcodec.NewBitstreamFilter(filter.filter, &ctx)); err != nil {
 		return nil, err
 	}
 
 	ret := &BitstreamFilterContext{ctx: ctx}
 
 	runtime.SetFinalizer(ret, func(ctx *BitstreamFilterContext) {
-		C.av_bsf_free(&ctx.ctx)
+		avcodec.FreeBitstreamFilter(&ctx.ctx)
 	})
 
 	return ret, nil
 }
 
 func (ctx *BitstreamFilterContext) SetInputCodecParameters(params *CodecParameters) {
-	if err := averror(C.avcodec_parameters_copy(ctx.ctx.par_in, params.parameters)); err != nil {
+	if err := averror(avcodec.CopyParameters(ctx.ctx.ParIn, params._codecParameters)); err != nil {
 		panic(err)
 	}
 }
 
 func (ctx *BitstreamFilterContext) SetOutputCodecParameters(params *CodecParameters) {
-	if err := averror(C.avcodec_parameters_copy(ctx.ctx.par_out, params.parameters)); err != nil {
+	if err := averror(avcodec.CopyParameters(ctx.ctx.ParOut, params._codecParameters)); err != nil {
 		panic(err)
 	}
 }
 
 func (ctx *BitstreamFilterContext) init() error {
 	ctx.initOnce.Do(func() {
-		if ctx.initErr = averror(C.av_bsf_init(ctx.ctx)); ctx.initErr != nil {
+		if ctx.initErr = averror(avcodec.InitBitstreamFilter(ctx.ctx)); ctx.initErr != nil {
 			return
 		}
 	})
@@ -80,14 +78,14 @@ func (ctx *BitstreamFilterContext) FilterPacket(inPacket *Packet) ([]*Packet, er
 		return nil, err
 	}
 
-	if err := averror(C.av_bsf_send_packet(ctx.ctx, inPacket.packet)); err != nil {
+	if err := averror(avcodec.SendBitstreamFilterPacket(ctx.ctx, inPacket._packet)); err != nil {
 		return nil, err
 	}
 
 	var outPackets []*Packet
 	for {
 		outPacket := NewPacket()
-		if err := averror(C.av_bsf_receive_packet(ctx.ctx, outPacket.packet)); errors.Is(err, ErrAgain) {
+		if err := averror(avcodec.ReceiveBitstreamFilterPacket(ctx.ctx, outPacket._packet)); errors.Is(err, ErrAgain) {
 			break
 		} else if err != nil {
 			// TODO: consider freeing previously received packets here
