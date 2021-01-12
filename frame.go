@@ -17,7 +17,7 @@ type Frame struct {
 func NewFrame() *Frame {
 	frame := avutil.NewFrame()
 	if frame == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	ret := &Frame{
@@ -38,8 +38,6 @@ func (f *Frame) prepare() *avutil.Frame {
 }
 
 func (f *Frame) Unref() {
-	defer runtime.KeepAlive(f)
-
 	avutil.UnrefFrame(f._frame)
 }
 

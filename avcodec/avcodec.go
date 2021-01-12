@@ -12,6 +12,7 @@ import "C"
 // +gen convtype struct_AVFrame github.com/ssttevee/go-av/avutil.Frame
 // +gen convtype struct_AVBufferRef github.com/ssttevee/go-av/avutil.BufferRef
 // +gen convtype struct_AVRational github.com/ssttevee/go-av/avutil.Rational
+// +gen convtype struct_AVClass github.com/ssttevee/go-av/avutil.Class
 
 // +gen convtype struct_AVPacket Packet
 // +gen convtype struct_AVCodecContext Context
@@ -20,10 +21,13 @@ import "C"
 // +gen convtype struct_AVBitStreamFilter BitstreamFilter
 // +gen convtype struct_AVBSFContext BitstreamFilterContext
 
+// +gen fieldtype struct_AVCodec id ID
 // +gen fieldtype struct_AVCodec pix_fmts *github.com/ssttevee/go-av/avutil.PixelFormat
 // +gen fieldtype struct_AVCodec sample_fmts *github.com/ssttevee/go-av/avutil.SampleFormat
 
 // +gen fieldtype struct_AVCodecContext pix_fmt github.com/ssttevee/go-av/avutil.PixelFormat
+
+// +gen fieldtype struct_AVCodecParameters codec_id ID
 
 // +gen wrapfunc avcodec_open2 Open
 // +gen wrapfunc avcodec_alloc_context3 NewContext
@@ -38,6 +42,8 @@ import "C"
 // +gen wrapfunc avcodec_receive_frame ReceiveFrame
 // +gen wrapfunc avcodec_parameters_copy CopyParameters
 // +gen wrapfunc avcodec_get_name getName
+// +gen wrapfunc avcodec_find_decoder FindDecoder
+// +gen wrapfunc avcodec_find_encoder FindEncoder
 
 // +gen wrapfunc av_packet_alloc NewPacket
 // +gen wrapfunc av_packet_free FreePacket
@@ -50,3 +56,6 @@ import "C"
 // +gen wrapfunc av_bsf_receive_packet ReceiveBitstreamFilterPacket
 // +gen wrapfunc av_bsf_send_packet SendBitstreamFilterPacket
 // +gen wrapfunc av_bsf_get_by_name GetBitstreamFilterByName
+
+// +gen paramtype avcodec_find_decoder 0 ID
+// +gen paramtype avcodec_find_encoder 0 ID

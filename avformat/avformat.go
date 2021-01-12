@@ -10,8 +10,10 @@ import "C"
 // +gen convtype struct_AVDictionary github.com/ssttevee/go-av/avutil.Dictionary
 // +gen convtype struct_AVPacket github.com/ssttevee/go-av/avcodec.Packet
 // +gen convtype struct_AVCodec github.com/ssttevee/go-av/avcodec.Codec
+// +gen convtype struct_AVCodecContext github.com/ssttevee/go-av/avcodec.Context
 // +gen convtype struct_AVRational github.com/ssttevee/go-av/avutil.Rational
 // +gen convtype struct_AVFrame github.com/ssttevee/go-av/avutil.Frame
+// +gen convtype struct_AVClass github.com/ssttevee/go-av/avutil.Class
 
 // +gen convtype struct_AVInputFormat InputFormat
 // +gen convtype struct_AVStream Stream
@@ -28,6 +30,7 @@ import "C"
 // +gen wrapfunc avformat_new_stream NewStream
 // +gen wrapfunc avformat_alloc_output_context2 NewOutputContext
 // +gen wrapfunc avformat_write_header WriteHeader
+// +gen wrapfunc avformat_seek_file SeekFile
 
 // +gen wrapfunc avio_open OpenIO
 // +gen wrapfunc avio_close CloseIO
@@ -39,5 +42,9 @@ import "C"
 // +gen wrapfunc av_read_frame ReadFrame
 // +gen wrapfunc av_interleaved_write_frame WriteInterleavedFrame
 // +gen wrapfunc av_write_trailer WriteTrailer
+
+// +gen paramtype avio_alloc_context 4 unsafe.Pointer
+// +gen paramtype avio_alloc_context 5 unsafe.Pointer
+// +gen paramtype avio_alloc_context 6 unsafe.Pointer
 
 // +gen paramtype av_find_best_stream 1 MediaType

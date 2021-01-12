@@ -13,6 +13,7 @@ import (
 
 	"github.com/ssttevee/go-av/avcodec"
 	"github.com/ssttevee/go-av/avutil"
+	"github.com/ssttevee/go-av/internal/common"
 )
 
 type CodecNotFoundError string
@@ -27,10 +28,32 @@ type Codec struct {
 	*_codec
 }
 
+func FindDecoderCodecByID(codecID avcodec.ID) (*Codec, error) {
+	codec := avcodec.FindDecoder(codecID)
+	if codec == nil {
+		return nil, CodecNotFoundError(codecID.String())
+	}
+
+	return &Codec{
+		_codec: codec,
+	}, nil
+}
+
 func FindDecoderCodecByName(name string) (*Codec, error) {
 	codec := avcodec.FindDecoderByName(name)
 	if codec == nil {
 		return nil, CodecNotFoundError(name)
+	}
+
+	return &Codec{
+		_codec: codec,
+	}, nil
+}
+
+func FindEncoderCodecByID(codecID avcodec.ID) (*Codec, error) {
+	codec := avcodec.FindEncoder(codecID)
+	if codec == nil {
+		return nil, CodecNotFoundError(codecID.String())
 	}
 
 	return &Codec{
@@ -158,7 +181,7 @@ var pinnedCodecContextDataEntries = map[pinType]*pinnedCodecContextData{}
 
 func returnPinnedCodecContextDataError(p unsafe.Pointer, err error) C.int {
 	pinnedCodecContextDataEntries[pin(p)].err = err
-	return C.int(errInternalFormatError)
+	return C.int(common.FormatError)
 }
 
 //export goavCodecContextGetFormat
@@ -180,7 +203,7 @@ type codecContext struct {
 func newCodecContext(codec *Codec, params *CodecParameters) (*avcodec.Context, error) {
 	ctx := avcodec.NewContext(codec._codec)
 	if ctx == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	if params != nil {

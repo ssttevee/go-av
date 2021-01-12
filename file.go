@@ -14,6 +14,7 @@ import (
 
 	"github.com/ssttevee/go-av/avformat"
 	"github.com/ssttevee/go-av/avutil"
+	"github.com/ssttevee/go-av/internal/common"
 )
 
 type pinnedFile struct {
@@ -47,7 +48,7 @@ func getPinnedFile(p unsafe.Pointer) io.ReadWriteSeeker {
 
 func returnPinnedFileError(p unsafe.Pointer, err error) C.int {
 	pinnedFiles[pin(p)].err = err
-	return C.int(errInternalIOError)
+	return C.int(common.IOError)
 }
 
 func wrapCBuf(buf *C.uint8_t, size C.int) []byte {
@@ -62,7 +63,9 @@ func wrapCBuf(buf *C.uint8_t, size C.int) []byte {
 func goavFileReadPacket(p unsafe.Pointer, buf *C.uint8_t, bufSize C.int) C.int {
 	n, err := getPinnedFile(p).Read(wrapCBuf(buf, bufSize))
 	if err == io.EOF {
-		return C.AVERROR_EOF
+		if n <= 0 {
+			return C.AVERROR_EOF
+		}
 	} else if err != nil {
 		return returnPinnedFileError(p, err)
 	}
@@ -97,17 +100,17 @@ type ioContext struct {
 }
 
 func allocAvioContext(f interface{}, writable bool) *avformat.IOContext {
-	var read, write, seek *[0]byte
+	var read, write, seek unsafe.Pointer
 	if _, ok := f.(io.Reader); ok {
-		read = (*[0]byte)(C.goavFileReadPacket)
+		read = C.goavFileReadPacket
 	}
 
 	if _, ok := f.(io.Writer); ok {
-		write = (*[0]byte)(C.goavFileWritePacket)
+		write = C.goavFileWritePacket
 	}
 
 	if _, ok := f.(io.Seeker); ok {
-		seek = (*[0]byte)(C.goavFileSeek)
+		seek = C.goavFileSeek
 	}
 
 	if read == nil && write == nil {
@@ -129,7 +132,7 @@ func allocAvioContext(f interface{}, writable bool) *avformat.IOContext {
 
 	ctx := avformat.NewIOContext((*byte)(avutil.Malloc(1<<12)), 1<<12, writeFlag, pinptr(p), read, write, seek)
 	if ctx == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	pinnedFiles[p] = &pinnedFile{f: f}

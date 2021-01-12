@@ -354,3 +354,8 @@ func getPixelFormatName(p0 PixelFormat) *common.CChar {
 func getSampleFormatName(p0 SampleFormat) *common.CChar {
 	return (*common.CChar)(unsafe.Pointer(C.av_get_sample_fmt_name((int32)(p0))))
 }
+func q2d(p0 Rational) float64 {
+	defer runtime.KeepAlive(p0)
+	ret := C.av_q2d(*(*C.struct_AVRational)(unsafe.Pointer(&p0)))
+	return *(*float64)(unsafe.Pointer(&ret))
+}

@@ -20,7 +20,7 @@ import "C"
 type BitstreamFilter struct {
 	Name         *common.CChar
 	CodecIDs     *uint32
-	PrivClass    *C.struct_AVClass
+	PrivClass    *avutil.Class
 	PrivDataSize int32
 	Init         *[0]byte
 	Filter       *[0]byte
@@ -28,7 +28,7 @@ type BitstreamFilter struct {
 	Flush        *[0]byte
 }
 type BitstreamFilterContext struct {
-	AvClass     *C.struct_AVClass
+	AvClass     *avutil.Class
 	Filter      *BitstreamFilter
 	Internal    *C.struct_AVBSFInternal
 	PrivData    unsafe.Pointer
@@ -41,7 +41,7 @@ type Codec struct {
 	Name                 *common.CChar
 	LongName             *common.CChar
 	Type                 int32
-	ID                   uint32
+	ID                   ID
 	Capabilities         int32
 	SupportedFramerates  *avutil.Rational
 	PixFmts              *avutil.PixelFormat
@@ -49,7 +49,7 @@ type Codec struct {
 	SampleFmts           *avutil.SampleFormat
 	ChannelLayouts       *uint64
 	MaxLowres            uint8
-	PrivClass            *C.struct_AVClass
+	PrivClass            *avutil.Class
 	Profiles             *C.struct_AVProfile
 	WrapperName          *common.CChar
 	PrivDataSize         int32
@@ -72,7 +72,7 @@ type Codec struct {
 	CodecTags            *C.uint32_t
 }
 type Context struct {
-	AvClass                   *C.struct_AVClass
+	AvClass                   *avutil.Class
 	LogLevelOffset            int32
 	CodecType                 int32
 	Codec                     *Codec
@@ -283,7 +283,7 @@ type Packet struct {
 }
 type Parameters struct {
 	CodecType          int32
-	CodecID            uint32
+	CodecID            ID
 	CodecTag           C.uint32_t
 	Extradata          *uint8
 	ExtradataSize      int32
@@ -320,6 +320,9 @@ func CopyParameters(p0 *Parameters, p1 *Parameters) int32 {
 	ret := C.avcodec_parameters_copy((*C.struct_AVCodecParameters)(unsafe.Pointer(p0)), (*C.struct_AVCodecParameters)(unsafe.Pointer(p1)))
 	return *(*int32)(unsafe.Pointer(&ret))
 }
+func FindDecoder(p0 ID) *Codec {
+	return (*Codec)(unsafe.Pointer(C.avcodec_find_decoder((uint32)(p0))))
+}
 func FindDecoderByName(p0 string) *Codec {
 	var s0 *C.char
 	if p0 != "" {
@@ -327,6 +330,9 @@ func FindDecoderByName(p0 string) *Codec {
 		defer C.free(unsafe.Pointer(s0))
 	}
 	return (*Codec)(unsafe.Pointer(C.avcodec_find_decoder_by_name(s0)))
+}
+func FindEncoder(p0 ID) *Codec {
+	return (*Codec)(unsafe.Pointer(C.avcodec_find_encoder((uint32)(p0))))
 }
 func FindEncoderByName(p0 string) *Codec {
 	var s0 *C.char

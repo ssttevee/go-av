@@ -9,18 +9,57 @@ package av
 import "C"
 import (
 	"io"
+	"net/url"
 	"os"
+	"path"
 	"reflect"
 	"sync"
 	"unsafe"
 
+	"github.com/pkg/errors"
 	"github.com/ssttevee/go-av/avcodec"
 	"github.com/ssttevee/go-av/avformat"
 	"github.com/ssttevee/go-av/avutil"
+	"github.com/ssttevee/go-av/internal/common"
 )
 
 type Opener interface {
 	Open(url string, flags int) (io.Closer, error)
+}
+
+const FileOpener = fileOpener(0)
+
+type fileOpener int
+
+func (fileOpener) Open(inputURL string, flags int) (io.Closer, error) {
+	u, err := url.Parse(inputURL)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	const scheme = "file"
+	if u.Scheme != "" && u.Scheme != scheme {
+		return nil, errors.Errorf("expected %q scheme, but got %q", scheme, u.Scheme)
+	}
+
+	var filepath string
+	if u.Opaque != "" {
+		filepath = u.Opaque
+	} else {
+		filepath = u.Path
+	}
+
+	dir, _ := path.Split(filepath)
+	if err := os.MkdirAll(dir, 0666); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	f, err := os.OpenFile(filepath, flags, 0666)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return f, nil
 }
 
 type pinnedFormatContextData struct {
@@ -32,7 +71,7 @@ var pinnedFormatContextDataEntries = map[pinType]*pinnedFormatContextData{}
 
 func returnPinnedFormatContextDataError(p unsafe.Pointer, err error) C.int {
 	pinnedFormatContextDataEntries[pin(p)].err = err
-	return C.int(errInternalFormatError)
+	return C.int(common.FormatError)
 }
 
 //export goavIOOpen
@@ -109,7 +148,7 @@ func (ctx *formatContext) finalizePinnedData() {
 func (ctx *formatContext) FindBestStream(mediaType avformat.MediaType) (int, *Codec, error) {
 	var codec *avcodec.Codec
 	streamIndex, err := avreturn(avformat.FindBestStream(ctx._formatContext, mediaType, -1, -1, &codec, 0))
-	if err == Error(C.AVERROR_STREAM_NOT_FOUND) {
+	if err == avutil.ErrStreamNotFound {
 		return -1, nil, nil
 	} else if err != nil {
 		return 0, nil, err

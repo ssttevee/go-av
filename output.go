@@ -10,6 +10,8 @@ import (
 
 	"github.com/ssttevee/go-av/avcodec"
 	"github.com/ssttevee/go-av/avformat"
+	"github.com/ssttevee/go-av/avutil"
+	"github.com/ssttevee/go-av/internal/common"
 )
 
 type outputDest interface {
@@ -109,7 +111,7 @@ func (ctx *OutputFormatContext) NewStream(codec *Codec) *Stream {
 
 	stream := avformat.NewStream(ctx._formatContext, c)
 	if stream == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	stream.ID = int32(ctx._formatContext.NbStreams - 1)
@@ -128,7 +130,7 @@ func (ctx *OutputFormatContext) init() error {
 				return
 			}
 
-			ctx.closeFunc, ctx.initErr = ctx.dst.initIOContext(&ctx._formatContext.Pb)
+			ctx.closeFunc, ctx.initErr = ctx.dst.initIOContext(&ctx.Pb)
 			if ctx.initErr != nil {
 				return
 			}
@@ -158,12 +160,14 @@ func (ctx *OutputFormatContext) WritePacket(packet *Packet) error {
 }
 
 func (ctx *OutputFormatContext) realError(err error) error {
-	switch err {
-	case errInternalIOError:
-		return pinnedFiles[pin(ctx._formatContext.Pb.Opaque)].err
+	if averr, ok := errors.Unwrap(err).(avutil.Error); ok {
+		switch int(averr) {
+		case common.IOError:
+			return pinnedFiles[pin(ctx.Pb.Opaque)].err
 
-	case errInternalFormatError:
-		return ctx.pinnedData().err
+		case common.FormatError:
+			return ctx.pinnedData().err
+		}
 	}
 
 	return err

@@ -55,7 +55,7 @@ type FilterGraph struct {
 func NewFilterGraph() (*FilterGraph, error) {
 	graph := avfilter.NewGraph()
 	if graph == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	ret := &FilterGraph{_filterGraph: graph}
@@ -147,7 +147,7 @@ func (g *FilterGraph) NewFilterByName(filterName, name, args string) (*FilterCon
 	return g.NewFilter(filter, name, args)
 }
 
-func linkFilters(src *FilterContext, srcPadIndex int, dst *FilterContext, dstPadIndex int) error {
+func linkFilters(src *FilterContext, srcPadIndex int32, dst *FilterContext, dstPadIndex int32) error {
 	return averror(avfilter.Link(src._filterContext, uint32(srcPadIndex), dst._filterContext, uint32(dstPadIndex)))
 }
 
@@ -158,7 +158,7 @@ type FilterContext struct {
 	g *FilterGraph
 }
 
-func (ctx *FilterContext) LinkTo(padIndex int, dst *FilterContext, dstPadIndex int) error {
+func (ctx *FilterContext) LinkTo(padIndex int32, dst *FilterContext, dstPadIndex int32) error {
 	return linkFilters(ctx, padIndex, dst, dstPadIndex)
 }
 
@@ -166,7 +166,7 @@ func (ctx *FilterContext) Name() string {
 	return ctx._filterContext.Name.String()
 }
 
-func (ctx *FilterContext) LinkFrom(padIndex int, src *FilterContext, srcPadIndex int) error {
+func (ctx *FilterContext) LinkFrom(padIndex int32, src *FilterContext, srcPadIndex int32) error {
 	return linkFilters(src, srcPadIndex, ctx, padIndex)
 }
 
@@ -180,7 +180,7 @@ func (g *FilterGraph) NewBufferSource(name string, decoder *DecoderContext) (*Bu
 
 	par := avfilter.NewBufferSourceParameters()
 	if par == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	defer avutil.Free(unsafe.Pointer(par))
@@ -188,7 +188,7 @@ func (g *FilterGraph) NewBufferSource(name string, decoder *DecoderContext) (*Bu
 	if decoder._codecContext.HwFramesCtx != nil {
 		par.HwFramesCtx = avutil.RefBuffer(decoder._codecContext.HwFramesCtx)
 		if par.HwFramesCtx == nil {
-			panic(ErrNoMem)
+			panic(avutil.ErrNoMem)
 		}
 	}
 
@@ -202,7 +202,7 @@ func (g *FilterGraph) NewBufferSource(name string, decoder *DecoderContext) (*Bu
 	if decoder._codecContext.HwFramesCtx != nil {
 		ctx.HwDeviceCtx = avutil.RefBuffer(decoder._codecContext.HwFramesCtx)
 		if ctx.HwDeviceCtx == nil {
-			panic(ErrNoMem)
+			panic(avutil.ErrNoMem)
 		}
 	}
 
@@ -226,7 +226,7 @@ func (src *BufferSource) WriteFrame(frame *Frame) error {
 	return averror(avfilter.WriteBufferSourceFrame(src._filterContext, frame._frame))
 }
 
-func (src *BufferSource) LinkTo(dst *FilterContext, dstPadIndex int) error {
+func (src *BufferSource) LinkTo(dst *FilterContext, dstPadIndex int32) error {
 	return linkFilters((*FilterContext)(src), 0, dst, dstPadIndex)
 }
 
@@ -259,7 +259,7 @@ func (sink *BufferSink) ReadFrameReuse(frame *Frame) error {
 
 func (sink *BufferSink) ReadFrame() (*Frame, error) {
 	frame := NewFrame()
-	if err := sink.ReadFrameReuse(frame); errors.Is(err, ErrAgain) {
+	if err := sink.ReadFrameReuse(frame); errors.Is(err, avutil.ErrAgain) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -284,6 +284,6 @@ func (sink *BufferSink) ReadFrames() ([]*Frame, error) {
 	return frames, nil
 }
 
-func (sink *BufferSink) LinkFrom(src *FilterContext, srcPadIndex int) error {
+func (sink *BufferSink) LinkFrom(src *FilterContext, srcPadIndex int32) error {
 	return linkFilters(src, srcPadIndex, (*FilterContext)(sink), 0)
 }

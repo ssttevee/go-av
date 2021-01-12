@@ -1,7 +1,6 @@
 package av
 
 // #include <libavutil/hwcontext.h>
-// #include <libavutil/hwcontext_cuda.h>
 import "C"
 import (
 	"runtime"
@@ -38,7 +37,7 @@ func NewHWDeviceContext(deviceType avutil.HWDeviceType, device string) (*HWDevic
 func (ctx *HWDeviceContext) ref() *avutil.BufferRef {
 	ref := avutil.RefBuffer(ctx.ctx)
 	if ref == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	return ref
@@ -53,7 +52,7 @@ type HWFramesContext struct {
 
 func newHWFramesContext(buf *avutil.BufferRef) *HWFramesContext {
 	if buf == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	ret := &HWFramesContext{
@@ -92,7 +91,7 @@ func (ctx *HWFramesContext) Eq(ctx2 *HWFramesContext) bool {
 func (ctx *HWFramesContext) ref() *avutil.BufferRef {
 	ref := avutil.RefBuffer(ctx.buf)
 	if ref == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	return ref

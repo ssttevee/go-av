@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ssttevee/go-av/avcodec"
+	"github.com/ssttevee/go-av/avutil"
 )
 
 type BitstreamFilterNotFoundError string
@@ -85,7 +86,7 @@ func (ctx *BitstreamFilterContext) FilterPacket(inPacket *Packet) ([]*Packet, er
 	var outPackets []*Packet
 	for {
 		outPacket := NewPacket()
-		if err := averror(avcodec.ReceiveBitstreamFilterPacket(ctx.ctx, outPacket._packet)); errors.Is(err, ErrAgain) {
+		if err := averror(avcodec.ReceiveBitstreamFilterPacket(ctx.ctx, outPacket._packet)); errors.Is(err, avutil.ErrAgain) {
 			break
 		} else if err != nil {
 			// TODO: consider freeing previously received packets here

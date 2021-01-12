@@ -63,7 +63,7 @@ func getOption(ptr unsafe.Pointer, name string, searchFlags int32) (interface{},
 	var target unsafe.Pointer
 	opt := avutil.FindOpt(ptr, name, "", 0, searchFlags, &target)
 	if opt == nil || target == nil || (opt.Offset <= 0 && opt.Type != avutil.OptionTypeConst) {
-		return nil, ErrOptionNotFound
+		return nil, avutil.ErrOptionNotFound
 	}
 
 	dst := unsafe.Pointer(uintptr(target) + uintptr(opt.Offset))
@@ -90,5 +90,5 @@ func getOption(ptr unsafe.Pointer, name string, searchFlags int32) (interface{},
 		return *(*float64)(unsafe.Pointer(&opt.DefaultVal[0])), nil
 	}
 
-	return nil, ErrInval
+	return nil, avutil.ErrInval
 }

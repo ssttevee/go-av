@@ -30,3 +30,7 @@ func (s *Stream) SetCodecpar(params *CodecParameters) {
 		panic(err)
 	}
 }
+
+func (s *Stream) FindDecoder() {
+
+}

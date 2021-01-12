@@ -97,7 +97,7 @@ func (ctx *EncoderContext) FramePackets(frame *Frame) ([]*Packet, error) {
 	var packets []*Packet
 	for {
 		packet, err := ctx.ReceivePacket()
-		if errors.Is(err, ErrAgain) {
+		if errors.Is(err, avutil.ErrAgain) {
 			// ErrAgain means there are no more packets to receive
 			break
 		} else if err != nil {

@@ -18,7 +18,7 @@ import (
 import "C"
 
 type Context struct {
-	AvClass                     *C.struct_AVClass
+	AvClass                     *avutil.Class
 	Iformat                     *InputFormat
 	Oformat                     *C.struct_AVOutputFormat
 	PrivData                    unsafe.Pointer
@@ -96,7 +96,7 @@ type Context struct {
 	_                           [4]byte
 }
 type IOContext struct {
-	AvClass             *C.struct_AVClass
+	AvClass             *avutil.Class
 	Buffer              *byte
 	BufferSize          int32
 	BufPtr              *byte
@@ -141,7 +141,7 @@ type InputFormat struct {
 	Flags                    int32
 	Extensions               *common.CChar
 	CodecTag                 **C.struct_AVCodecTag
-	PrivClass                *C.struct_AVClass
+	PrivClass                *avutil.Class
 	MimeType                 *common.CChar
 	Next                     *InputFormat
 	RawCodecID               int32
@@ -162,7 +162,7 @@ type InputFormat struct {
 type Stream struct {
 	Index                           int32
 	ID                              int32
-	Codec                           *C.struct_AVCodecContext
+	Codec                           *avcodec.Context
 	PrivData                        unsafe.Pointer
 	TimeBase                        avutil.Rational
 	StartTime                       int64
@@ -265,11 +265,11 @@ func GuessFrameRate(p0 *Context, p1 *Stream, p2 *avutil.Frame) avutil.Rational {
 func NewContext() *Context {
 	return (*Context)(unsafe.Pointer(C.avformat_alloc_context()))
 }
-func NewIOContext(p0 *byte, p1 int32, p2 int32, p3 unsafe.Pointer, p4 *[0]byte, p5 *[0]byte, p6 *[0]byte) *IOContext {
+func NewIOContext(p0 *byte, p1 int32, p2 int32, p3 unsafe.Pointer, p4 unsafe.Pointer, p5 unsafe.Pointer, p6 unsafe.Pointer) *IOContext {
 	defer runtime.KeepAlive(p0)
 	defer runtime.KeepAlive(p1)
 	defer runtime.KeepAlive(p2)
-	return (*IOContext)(unsafe.Pointer(C.avio_alloc_context((*C.uchar)(unsafe.Pointer(p0)), *(*C.int)(unsafe.Pointer(&p1)), *(*C.int)(unsafe.Pointer(&p2)), p3, p4, p5, p6)))
+	return (*IOContext)(unsafe.Pointer(C.avio_alloc_context((*C.uchar)(unsafe.Pointer(p0)), *(*C.int)(unsafe.Pointer(&p1)), *(*C.int)(unsafe.Pointer(&p2)), p3, (*[0]byte)(p4), (*[0]byte)(p5), (*[0]byte)(p6))))
 }
 func NewOutputContext(p0 **Context, p1 *C.struct_AVOutputFormat, p2 string, p3 string) int32 {
 	defer runtime.KeepAlive(p0)
@@ -318,6 +318,16 @@ func ReadFrame(p0 *Context, p1 *avcodec.Packet) int32 {
 	defer runtime.KeepAlive(p0)
 	defer runtime.KeepAlive(p1)
 	ret := C.av_read_frame((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
+	return *(*int32)(unsafe.Pointer(&ret))
+}
+func SeekFile(p0 *Context, p1 int32, p2 int64, p3 int64, p4 int64, p5 int32) int32 {
+	defer runtime.KeepAlive(p0)
+	defer runtime.KeepAlive(p1)
+	defer runtime.KeepAlive(p2)
+	defer runtime.KeepAlive(p3)
+	defer runtime.KeepAlive(p4)
+	defer runtime.KeepAlive(p5)
+	ret := C.avformat_seek_file((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), *(*C.int)(unsafe.Pointer(&p1)), *(*C.int64_t)(unsafe.Pointer(&p2)), *(*C.int64_t)(unsafe.Pointer(&p3)), *(*C.int64_t)(unsafe.Pointer(&p4)), *(*C.int)(unsafe.Pointer(&p5)))
 	return *(*int32)(unsafe.Pointer(&ret))
 }
 func WriteHeader(p0 *Context, p1 **avutil.Dictionary) int32 {

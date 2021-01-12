@@ -18,7 +18,7 @@ type Packet struct {
 func NewPacket() *Packet {
 	packet := avcodec.NewPacket()
 	if packet == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	ret := &Packet{
@@ -58,7 +58,5 @@ func (p *Packet) Clone() (*Packet, error) {
 }
 
 func (p *Packet) Unref() {
-	defer runtime.KeepAlive(p)
-
 	avcodec.UnrefPacket(p._packet)
 }

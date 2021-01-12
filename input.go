@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/ssttevee/go-av/avformat"
+	"github.com/ssttevee/go-av/avutil"
 )
 
 type InputFormatContext struct {
@@ -46,11 +47,10 @@ func OpenInputReader(r io.Reader) (*InputFormatContext, error) {
 
 	ctx := avformat.NewContext()
 	if ctx == nil {
-		panic(ErrNoMem)
+		panic(avutil.ErrNoMem)
 	}
 
 	ctx.Opaque = nil
-	ctx.Flags = int32(C.AVFMT_FLAG_CUSTOM_IO)
 	ctx.Pb = ioctx._ioContext
 
 	ret := &InputFormatContext{
@@ -84,4 +84,8 @@ func (ctx *InputFormatContext) ReadPacket() (*Packet, error) {
 	}
 
 	return packet, nil
+}
+
+func (ctx *InputFormatContext) SeekFile(streamIndex int32, minTimestamp, timestamp, maxTimestamp int64, flags int32) error {
+	return averror(avformat.SeekFile(ctx._formatContext, streamIndex, minTimestamp, timestamp, maxTimestamp, flags))
 }
