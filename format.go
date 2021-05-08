@@ -50,8 +50,10 @@ func (fileOpener) Open(inputURL string, flags int) (io.Closer, error) {
 	}
 
 	dir, _ := path.Split(filepath)
-	if err := os.MkdirAll(dir, 0666); err != nil {
-		return nil, errors.WithStack(err)
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0666); err != nil {
+			return nil, errors.WithStack(err)
+		}
 	}
 
 	f, err := os.OpenFile(filepath, flags, 0666)
