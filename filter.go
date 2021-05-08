@@ -61,7 +61,10 @@ func NewFilterGraph() (*FilterGraph, error) {
 	ret := &FilterGraph{_filterGraph: graph}
 
 	runtime.SetFinalizer(ret, func(graph *FilterGraph) {
-		avfilter.FreeGraph(&graph._filterGraph)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		filterGraph := (*avfilter.Graph)(graph._filterGraph)
+		avfilter.FreeGraph(&filterGraph)
+		graph._filterGraph = filterGraph
 	})
 
 	return ret, nil

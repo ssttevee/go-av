@@ -147,7 +147,10 @@ func newIOContext(f interface{}, writable bool) *ioContext {
 
 	runtime.SetFinalizer(ret, func(ctx *ioContext) {
 		delete(pinnedFiles, pin(ctx._ioContext.Opaque))
-		avformat.FreeIOContext(&ctx._ioContext)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		ioContext := (*avformat.IOContext)(ctx._ioContext)
+		avformat.FreeIOContext(&ioContext)
+		ctx._ioContext = ioContext
 	})
 
 	return ret

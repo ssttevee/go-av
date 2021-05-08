@@ -19,7 +19,10 @@ func newHWDeviceContext(ctx *avutil.BufferRef) *HWDeviceContext {
 	ret := &HWDeviceContext{ctx: ctx}
 
 	runtime.SetFinalizer(ret, func(ctx *HWDeviceContext) {
-		avutil.UnrefBuffer(&ctx.ctx)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		buf := (*avutil.BufferRef)(ctx.ctx)
+		avutil.UnrefBuffer(&buf)
+		ctx.ctx = buf
 	})
 
 	return ret
@@ -62,7 +65,10 @@ func newHWFramesContext(buf *avutil.BufferRef) *HWFramesContext {
 
 	runtime.SetFinalizer(ret, func(ctx *HWFramesContext) {
 		ctx._hwFramesContext = nil
-		avutil.UnrefBuffer(&ctx.buf)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		buf := (*avutil.BufferRef)(ctx.buf)
+		avutil.UnrefBuffer(&buf)
+		ctx.buf = buf
 	})
 
 	return ret

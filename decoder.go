@@ -29,7 +29,10 @@ func NewDecoderContext(codec *Codec, params *CodecParameters) (*DecoderContext, 
 
 	runtime.SetFinalizer(ret, func(ctx *DecoderContext) {
 		ctx.finalizedPinnedData()
-		avcodec.FreeContext(&ctx._codecContext)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		codecContext := (*avcodec.Context)(ctx._codecContext)
+		avcodec.FreeContext(&codecContext)
+		ctx._codecContext = codecContext
 	})
 
 	return ret, nil

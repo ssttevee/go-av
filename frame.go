@@ -25,7 +25,10 @@ func NewFrame() *Frame {
 	}
 
 	runtime.SetFinalizer(ret, func(f *Frame) {
-		avutil.FreeFrame(&f._frame)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		frame := (*avutil.Frame)(f._frame)
+		avutil.FreeFrame(&frame)
+		f._frame = frame
 	})
 
 	return ret

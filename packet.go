@@ -26,7 +26,10 @@ func NewPacket() *Packet {
 	}
 
 	runtime.SetFinalizer(ret, func(p *Packet) {
-		avcodec.FreePacket(&p._packet)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		packet := (*avcodec.Packet)(p._packet)
+		avcodec.FreePacket(&packet)
+		p._packet = packet
 	})
 
 	return ret

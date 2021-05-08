@@ -46,7 +46,10 @@ func NewBitstreamFilterContext(filter *BitstreamFilter) (*BitstreamFilterContext
 	ret := &BitstreamFilterContext{ctx: ctx}
 
 	runtime.SetFinalizer(ret, func(ctx *BitstreamFilterContext) {
-		avcodec.FreeBitstreamFilter(&ctx.ctx)
+		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+		bsfCtx := ctx.ctx
+		avcodec.FreeBitstreamFilter(&bsfCtx)
+		ctx.ctx = bsfCtx
 	})
 
 	return ret, nil

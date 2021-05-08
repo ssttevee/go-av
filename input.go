@@ -18,7 +18,10 @@ type InputFormatContext struct {
 
 func finalizeInputFormatContext(ctx *InputFormatContext) {
 	ctx.finalizePinnedData()
-	avformat.CloseInput(&ctx._formatContext)
+	// heap pointer may not be passed to cgo, so use a stack pointer instead :D
+	formatCtx := (*avformat.Context)(ctx._formatContext)
+	avformat.CloseInput(&formatCtx)
+	ctx._formatContext = formatCtx
 }
 
 func OpenInputFile(input string) (*InputFormatContext, error) {
