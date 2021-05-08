@@ -76,6 +76,33 @@ func OpenInputReader(r io.Reader) (*InputFormatContext, error) {
 	return ret, nil
 }
 
+func OpenInputWithOpener(opener Opener, url string) (*InputFormatContext, error) {
+	ctx := avformat.NewContext()
+	if ctx == nil {
+		panic(avutil.ErrNoMem)
+	}
+
+	ret := &InputFormatContext{
+		formatContext: formatContext{
+			_formatContext: ctx,
+		},
+	}
+
+	runtime.SetFinalizer(ret, finalizeInputFormatContext)
+
+	ret.SetOpener(opener)
+
+	if err := averror(avformat.OpenInput(&ctx, url, nil, nil)); err != nil {
+		return nil, err
+	}
+
+	if err := averror(avformat.FindStreamInfo(ctx, nil)); err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
 func (ctx *InputFormatContext) ReadPacketReuse(packet *Packet) error {
 	return averror(avformat.ReadFrame(ctx._formatContext, packet.prepare()))
 }
