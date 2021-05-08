@@ -156,7 +156,7 @@ type Context struct {
 	FieldOrder                uint32
 	SampleRate                int32
 	Channels                  int32
-	SampleFmt                 int32
+	SampleFmt                 avutil.SampleFormat
 	FrameSize                 int32
 	FrameNumber               int32
 	BlockAlign                int32

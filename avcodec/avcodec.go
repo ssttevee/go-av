@@ -26,6 +26,7 @@ import "C"
 // +gen fieldtype struct_AVCodec sample_fmts *github.com/ssttevee/go-av/avutil.SampleFormat
 
 // +gen fieldtype struct_AVCodecContext pix_fmt github.com/ssttevee/go-av/avutil.PixelFormat
+// +gen fieldtype struct_AVCodecContext sample_fmt github.com/ssttevee/go-av/avutil.SampleFormat
 
 // +gen fieldtype struct_AVCodecParameters codec_id ID
 
