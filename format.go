@@ -9,6 +9,7 @@ package av
 import "C"
 import (
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -62,6 +63,28 @@ func (fileOpener) Open(inputURL string, flags int) (io.Closer, error) {
 	}
 
 	return f, nil
+}
+
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error {
+	return nil
+}
+
+const NullOpener = nullOpener(0)
+
+type nullOpener int
+
+func (nullOpener) Open(inputURL string, flags int) (io.Closer, error) {
+	if flags&os.O_WRONLY == 0 {
+		return nil, errors.Errorf("unsupported flags: %b", flags)
+	}
+
+	return nopCloser{
+		Writer: ioutil.Discard,
+	}, nil
 }
 
 type pinnedFormatContextData struct {
