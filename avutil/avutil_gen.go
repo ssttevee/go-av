@@ -348,6 +348,9 @@ func UnrefFrame(p0 *Frame) {
 func getHWDeviceTypeName(p0 HWDeviceType) *common.CChar {
 	return (*common.CChar)(unsafe.Pointer(C.av_hwdevice_get_type_name((uint32)(p0))))
 }
+func getMediaTypeString(p0 MediaType) *common.CChar {
+	return (*common.CChar)(unsafe.Pointer(C.av_get_media_type_string((int32)(p0))))
+}
 func getPixelFormatName(p0 PixelFormat) *common.CChar {
 	return (*common.CChar)(unsafe.Pointer(C.av_get_pix_fmt_name((int32)(p0))))
 }
