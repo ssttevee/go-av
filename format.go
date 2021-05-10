@@ -150,7 +150,7 @@ func (ctx *formatContext) finalizePinnedData() {
 func (ctx *formatContext) FindBestStream(mediaType avformat.MediaType) (int, *Codec, error) {
 	var codec *avcodec.Codec
 	streamIndex, err := avreturn(avformat.FindBestStream(ctx._formatContext, mediaType, -1, -1, &codec, 0))
-	if err == avutil.ErrStreamNotFound {
+	if errors.Is(err, avutil.ErrStreamNotFound) {
 		return -1, nil, nil
 	} else if err != nil {
 		return 0, nil, err
