@@ -3,11 +3,13 @@ package av
 // #include <libavformat/avformat.h>
 import "C"
 import (
+	"errors"
 	"io"
 	"runtime"
 
 	"github.com/ssttevee/go-av/avformat"
 	"github.com/ssttevee/go-av/avutil"
+	"github.com/ssttevee/go-av/internal/common"
 )
 
 type InputFormatContext struct {
@@ -30,10 +32,6 @@ func OpenInputFile(input string) (*InputFormatContext, error) {
 		return nil, err
 	}
 
-	if err := averror(avformat.FindStreamInfo(ctx, nil)); err != nil {
-		return nil, err
-	}
-
 	ret := &InputFormatContext{
 		formatContext: formatContext{
 			_formatContext: ctx,
@@ -41,6 +39,10 @@ func OpenInputFile(input string) (*InputFormatContext, error) {
 	}
 
 	runtime.SetFinalizer(ret, finalizeInputFormatContext)
+
+	if err := ret.realError(averror(avformat.FindStreamInfo(ctx, nil))); err != nil {
+		return nil, err
+	}
 
 	return ret, nil
 }
@@ -63,13 +65,13 @@ func OpenInputReader(r io.Reader) (*InputFormatContext, error) {
 		ioctx: ioctx,
 	}
 
-	if err := averror(avformat.OpenInput(&ctx, "", nil, nil)); err != nil {
+	if err := ret.realError(averror(avformat.OpenInput(&ctx, "", nil, nil))); err != nil {
 		return nil, err
 	}
 
 	runtime.SetFinalizer(ret, finalizeInputFormatContext)
 
-	if err := averror(avformat.FindStreamInfo(ctx, nil)); err != nil {
+	if err := ret.realError(averror(avformat.FindStreamInfo(ctx, nil))); err != nil {
 		return nil, err
 	}
 
@@ -92,11 +94,11 @@ func OpenInputWithOpener(opener Opener, url string) (*InputFormatContext, error)
 
 	ret.SetOpener(opener)
 
-	if err := averror(avformat.OpenInput(&ctx, url, nil, nil)); err != nil {
+	if err := ret.realError(averror(avformat.OpenInput(&ctx, url, nil, nil))); err != nil {
 		return nil, err
 	}
 
-	if err := averror(avformat.FindStreamInfo(ctx, nil)); err != nil {
+	if err := ret.realError(averror(avformat.FindStreamInfo(ctx, nil))); err != nil {
 		return nil, err
 	}
 
@@ -104,12 +106,12 @@ func OpenInputWithOpener(opener Opener, url string) (*InputFormatContext, error)
 }
 
 func (ctx *InputFormatContext) ReadPacketReuse(packet *Packet) error {
-	return averror(avformat.ReadFrame(ctx._formatContext, packet.prepare()))
+	return ctx.realError(averror(avformat.ReadFrame(ctx._formatContext, packet.prepare())))
 }
 
 func (ctx *InputFormatContext) ReadPacket() (*Packet, error) {
 	packet := NewPacket()
-	if err := averror(avformat.ReadFrame(ctx._formatContext, packet._packet)); err != nil {
+	if err := ctx.realError(averror(avformat.ReadFrame(ctx._formatContext, packet._packet))); err != nil {
 		return nil, err
 	}
 
@@ -117,5 +119,19 @@ func (ctx *InputFormatContext) ReadPacket() (*Packet, error) {
 }
 
 func (ctx *InputFormatContext) SeekFile(streamIndex int32, minTimestamp, timestamp, maxTimestamp int64, flags int32) error {
-	return averror(avformat.SeekFile(ctx._formatContext, streamIndex, minTimestamp, timestamp, maxTimestamp, flags))
+	return ctx.realError(averror(avformat.SeekFile(ctx._formatContext, streamIndex, minTimestamp, timestamp, maxTimestamp, flags)))
+}
+
+func (ctx *InputFormatContext) realError(err error) error {
+	if averr, ok := errors.Unwrap(err).(avutil.Error); ok {
+		switch int(averr) {
+		case common.IOError:
+			return pinnedFiles[pin(ctx.Pb.Opaque)].err
+
+		case common.FormatError:
+			return ctx.pinnedData().err
+		}
+	}
+
+	return err
 }

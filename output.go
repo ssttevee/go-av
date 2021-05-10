@@ -136,7 +136,7 @@ func (ctx *OutputFormatContext) init() error {
 			}
 		}
 
-		if ctx.initErr = averror(avformat.WriteHeader(ctx._formatContext, nil)); ctx.initErr != nil {
+		if ctx.initErr = ctx.realError(averror(avformat.WriteHeader(ctx._formatContext, nil))); ctx.initErr != nil {
 			return
 		}
 	})
@@ -156,7 +156,11 @@ func (ctx *OutputFormatContext) WritePacket(packet *Packet) error {
 		pkt = packet._packet
 	}
 
-	return ctx.realError(averror(avformat.WriteInterleavedFrame(ctx._formatContext, pkt)))
+	if err := ctx.realError(averror(avformat.WriteInterleavedFrame(ctx._formatContext, pkt))); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ctx *OutputFormatContext) realError(err error) error {
@@ -175,7 +179,7 @@ func (ctx *OutputFormatContext) realError(err error) error {
 
 func (ctx *OutputFormatContext) Close() error {
 	ctx.closeOnce.Do(func() {
-		if ctx.closeErr = averror(avformat.WriteTrailer(ctx._formatContext)); ctx.closeErr != nil {
+		if ctx.closeErr = ctx.realError(averror(avformat.WriteTrailer(ctx._formatContext))); ctx.closeErr != nil {
 			return
 		}
 
