@@ -74,7 +74,7 @@ type Codec struct {
 type Context struct {
 	AvClass                   *avutil.Class
 	LogLevelOffset            int32
-	CodecType                 int32
+	CodecType                 avutil.MediaType
 	Codec                     *Codec
 	CodecID                   uint32
 	CodecTag                  uint32
