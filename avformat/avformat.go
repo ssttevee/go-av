@@ -47,4 +47,4 @@ import "C"
 // +gen paramtype avio_alloc_context 5 unsafe.Pointer
 // +gen paramtype avio_alloc_context 6 unsafe.Pointer
 
-// +gen paramtype av_find_best_stream 1 MediaType
+// +gen paramtype av_find_best_stream 1 github.com/ssttevee/go-av/avutil.MediaType

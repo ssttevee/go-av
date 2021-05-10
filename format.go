@@ -170,7 +170,7 @@ func (ctx *formatContext) finalizePinnedData() {
 	delete(pinnedFormatContextDataEntries, pin(ctx.Opaque))
 }
 
-func (ctx *formatContext) FindBestStream(mediaType avformat.MediaType) (int, *Codec, error) {
+func (ctx *formatContext) FindBestStream(mediaType avutil.MediaType) (int, *Codec, error) {
 	var codec *avcodec.Codec
 	streamIndex, err := avreturn(avformat.FindBestStream(ctx._formatContext, mediaType, -1, -1, &codec, 0))
 	if errors.Is(err, avutil.ErrStreamNotFound) {

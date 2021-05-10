@@ -1,6 +1,6 @@
-package avformat
+package avutil
 
-// #include <libavformat/avformat.h>
+// #include <libavutil/avutil.h>
 import "C"
 
 type MediaType C.enum_AVMediaType

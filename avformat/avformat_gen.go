@@ -232,7 +232,7 @@ func CloseInput(p0 **Context) {
 	defer runtime.KeepAlive(p0)
 	C.avformat_close_input((**C.struct_AVFormatContext)(unsafe.Pointer(p0)))
 }
-func FindBestStream(p0 *Context, p1 MediaType, p2 int32, p3 int32, p4 **avcodec.Codec, p5 int32) int32 {
+func FindBestStream(p0 *Context, p1 avutil.MediaType, p2 int32, p3 int32, p4 **avcodec.Codec, p5 int32) int32 {
 	defer runtime.KeepAlive(p0)
 	defer runtime.KeepAlive(p2)
 	defer runtime.KeepAlive(p3)
