@@ -40,7 +40,7 @@ type BitstreamFilterContext struct {
 type Codec struct {
 	Name                 *common.CChar
 	LongName             *common.CChar
-	Type                 int32
+	Type                 avutil.MediaType
 	ID                   ID
 	Capabilities         int32
 	SupportedFramerates  *avutil.Rational
