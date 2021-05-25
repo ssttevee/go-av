@@ -38,3 +38,37 @@ func (q Rational) Inverse() Rational {
 		Den: q.Num,
 	}
 }
+
+func equalizedNumerators(aRat, bRat Rational) (a, b int32) {
+	if aRat.Den != bRat.Den {
+		aRat.Num *= bRat.Den
+		bRat.Num *= aRat.Den
+	}
+
+	return aRat.Num, bRat.Num
+}
+
+func (q Rational) Eq(rhs Rational) bool {
+	a, b := equalizedNumerators(q, rhs)
+	return a == b
+}
+
+func (q Rational) Gt(rhs Rational) bool {
+	a, b := equalizedNumerators(q, rhs)
+	return a > b
+}
+
+func (q Rational) Gte(rhs Rational) bool {
+	a, b := equalizedNumerators(q, rhs)
+	return a >= b
+}
+
+func (q Rational) Lt(rhs Rational) bool {
+	a, b := equalizedNumerators(q, rhs)
+	return a < b
+}
+
+func (q Rational) Lte(rhs Rational) bool {
+	a, b := equalizedNumerators(q, rhs)
+	return a <= b
+}
