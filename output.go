@@ -31,7 +31,7 @@ type fileOutputDest string
 
 func (dst fileOutputDest) initIOContext(pb **avformat.IOContext) (func() error, error) {
 	var ctx *avformat.IOContext
-	if err := averror(avformat.OpenIO(&ctx, string(dst), C.AVIO_FLAG_WRITE)); err != nil {
+	if err := averror(avformat.OpenIO(&ctx, string(dst), avformat.IOFlagWrite)); err != nil {
 		return nil, err
 	}
 
@@ -124,7 +124,7 @@ func (ctx *OutputFormatContext) NewStream(codec *Codec) *Stream {
 
 func (ctx *OutputFormatContext) init() error {
 	ctx.initOnce.Do(func() {
-		if ctx.Flags&C.AVFMT_NOFILE == 0 && ctx.dst != nil {
+		if ctx.Flags&avformat.NoFile == 0 && ctx.dst != nil {
 			if ctx.dst == nil {
 				ctx.initErr = errors.New("missing output dest")
 				return
@@ -183,7 +183,7 @@ func (ctx *OutputFormatContext) Close() error {
 			return
 		}
 
-		if ctx.Flags&C.AVFMT_NOFILE == 0 {
+		if ctx.Flags&avformat.NoFile == 0 {
 			if ctx.closeFunc == nil {
 				return
 			}

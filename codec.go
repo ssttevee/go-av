@@ -1,10 +1,10 @@
 package av
 
-// #cgo pkg-config: libavformat libavcodec libavfilter
-// #include <libavcodec/avcodec.h>
-// #include <libavutil/opt.h>
+// #include <stdint.h>
 //
-// extern enum AVPixelFormat goavCodecContextGetFormat(AVCodecContext *, enum AVPixelFormat *);
+// struct AVCodecContext;
+//
+// extern int goavCodecContextGetFormat(struct AVCodecContext *, int *);
 import "C"
 import (
 	"reflect"
@@ -185,8 +185,8 @@ func returnPinnedCodecContextDataError(p unsafe.Pointer, err error) C.int {
 }
 
 //export goavCodecContextGetFormat
-func goavCodecContextGetFormat(ctx *C.AVCodecContext, choices *C.enum_AVPixelFormat) C.enum_AVPixelFormat {
-	return C.enum_AVPixelFormat(pinnedCodecContextDataEntries[pin(ctx.opaque)].getFormatFunc(pixelFormatSlice((*avutil.PixelFormat)(unsafe.Pointer(choices)))))
+func goavCodecContextGetFormat(ctx *C.struct_AVCodecContext, choices *C.int) int32 {
+	return int32(pinnedCodecContextDataEntries[pin((*avcodec.Context)(unsafe.Pointer(ctx)).Opaque)].getFormatFunc(pixelFormatSlice((*avutil.PixelFormat)(unsafe.Pointer(choices)))))
 }
 
 type _codecContext = avcodec.Context
@@ -264,10 +264,11 @@ func (ctx *codecContext) CodecParameters() *CodecParameters {
 
 func (ctx *codecContext) SetGetFormat(f func([]avutil.PixelFormat) avutil.PixelFormat) {
 	if f == nil {
-		ctx.GetFormat = (*[0]byte)(C.avcodec_default_get_format)
+		// ctx.GetFormat = (*[0]byte)(C.avcodec_default_get_format)
+		ctx.GetFormat = nil
 	} else {
 		ctx.pinnedData().getFormatFunc = f
-		ctx.GetFormat = (*[0]byte)(C.goavCodecContextGetFormat)
+		ctx.GetFormat = (*[0]byte)(unsafe.Pointer(C.goavCodecContextGetFormat))
 	}
 }
 

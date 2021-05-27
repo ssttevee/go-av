@@ -1,6 +1,6 @@
 package av
 
-// #include <libavformat/avio.h>
+// #include <stdint.h>
 //
 // extern int goavFileReadPacket(void *opaque, uint8_t *buf, int buf_size);
 // extern int goavFileWritePacket(void *opaque, uint8_t *buf, int buf_size);
@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"unsafe"
 
+	"github.com/pkg/errors"
 	"github.com/ssttevee/go-av/avformat"
 	"github.com/ssttevee/go-av/avutil"
 	"github.com/ssttevee/go-av/internal/common"
@@ -62,12 +63,12 @@ func wrapCBuf(buf *C.uint8_t, size C.int) []byte {
 //export goavFileReadPacket
 func goavFileReadPacket(p unsafe.Pointer, buf *C.uint8_t, bufSize C.int) C.int {
 	n, err := getPinnedFile(p).Read(wrapCBuf(buf, bufSize))
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		if n <= 0 {
-			return C.AVERROR_EOF
+			return C.int(avutil.ErrEOF)
 		}
 	} else if err != nil {
-		return returnPinnedFileError(p, err)
+		return returnPinnedFileError(p, errors.WithStack(err))
 	}
 
 	return C.int(n)

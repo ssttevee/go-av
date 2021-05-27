@@ -1,7 +1,5 @@
 package av
 
-// #include <libavformat/avformat.h>
-import "C"
 import (
 	"errors"
 	"io"

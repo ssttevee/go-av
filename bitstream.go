@@ -1,7 +1,5 @@
 package av
 
-// #include <libavcodec/bsf.h>
-import "C"
 import (
 	"errors"
 	"runtime"

@@ -1,7 +1,5 @@
 package av
 
-// #include <libavutil/opt.h>
-import "C"
 import (
 	"fmt"
 	"runtime"

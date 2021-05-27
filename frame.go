@@ -1,7 +1,5 @@
 package av
 
-// #include <libavutil/frame.h>
-import "C"
 import (
 	"runtime"
 

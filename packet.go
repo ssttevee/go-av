@@ -1,7 +1,5 @@
 package av
 
-// #include <libavcodec/packet.h>
-import "C"
 import (
 	"runtime"
 

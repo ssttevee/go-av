@@ -1,7 +1,5 @@
 package av
 
-// #include <libavutil/hwcontext.h>
-import "C"
 import (
 	"runtime"
 	"unsafe"

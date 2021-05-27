@@ -1,11 +1,11 @@
-// +godefs map struct_AVFormatContext int64
-
 package av
 
-// #include <libavformat/avformat.h>
+// struct AVFormatContext;
+// struct AVIOContext;
+// struct AVDictionary;
 //
-// extern int goavIOOpen(struct AVFormatContext *s, AVIOContext **pb, char *url, int flags, AVDictionary **options);
-// extern int goavIOClose(struct AVFormatContext *s, AVIOContext *pb);
+// extern int goavIOOpen(struct AVFormatContext *s, struct AVIOContext **pb, char *url, int flags, struct AVDictionary **options);
+// extern int goavIOClose(struct AVFormatContext *s, struct AVIOContext *pb);
 import "C"
 import (
 	"io"
@@ -100,38 +100,40 @@ func returnPinnedFormatContextDataError(p unsafe.Pointer, err error) C.int {
 }
 
 //export goavIOOpen
-func goavIOOpen(s *C.struct_AVFormatContext, pb **C.AVIOContext, url *C.char, flags C.int, options **C.AVDictionary) C.int {
-	data, ok := pinnedFormatContextDataEntries[pin(s.opaque)]
+func goavIOOpen(s *C.struct_AVFormatContext, pb **C.struct_AVIOContext, url *C.char, flags C.int, options **C.struct_AVDictionary) C.int {
+	opaque := (*avformat.Context)(unsafe.Pointer(s)).Opaque
+	data, ok := pinnedFormatContextDataEntries[pin(opaque)]
 	if !ok {
 		panic("pinned data not found")
 	}
 
 	var goflags int
 	var writable bool
-	if flags&C.AVIO_FLAG_WRITE != 0 {
+	if flags&avformat.IOFlagWrite != 0 {
 		goflags = os.O_WRONLY | os.O_CREATE
 		writable = true
-	} else if flags&C.AVIO_FLAG_READ != 0 {
+	} else if flags&avformat.IOFlagRead != 0 {
 		goflags = os.O_RDONLY
 	}
 
 	f, err := data.opener.Open(C.GoString(url), goflags)
 	if err != nil {
-		return returnPinnedFormatContextDataError(s.opaque, err)
+		return returnPinnedFormatContextDataError(opaque, err)
 	}
 
-	*pb = (*C.AVIOContext)(unsafe.Pointer(allocAvioContext(f, writable)))
+	*pb = (*C.struct_AVIOContext)(unsafe.Pointer(allocAvioContext(f, writable)))
 
 	return 0
 }
 
 //export goavIOClose
-func goavIOClose(s *C.struct_AVFormatContext, pb *C.AVIOContext) C.int {
-	if err := pinnedFiles[pin(pb.opaque)].f.(io.Closer).Close(); err != nil {
-		return returnPinnedFormatContextDataError(s.opaque, err)
+func goavIOClose(s *C.struct_AVFormatContext, pb *C.struct_AVIOContext) C.int {
+	opaque := (*avformat.IOContext)(unsafe.Pointer(pb)).Opaque
+	if err := pinnedFiles[pin(opaque)].f.(io.Closer).Close(); err != nil {
+		return returnPinnedFormatContextDataError((*avformat.Context)(unsafe.Pointer(s)).Opaque, err)
 	}
 
-	delete(pinnedFiles, pin(pb.opaque))
+	delete(pinnedFiles, pin(opaque))
 
 	return 0
 }

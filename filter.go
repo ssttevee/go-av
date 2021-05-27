@@ -1,10 +1,5 @@
 package av
 
-// #include <libavfilter/avfilter.h>
-// #include <libavfilter/buffersrc.h>
-// #include <libavfilter/buffersink.h>
-// #include <libavutil/hwcontext.h>
-import "C"
 import (
 	"reflect"
 	"runtime"

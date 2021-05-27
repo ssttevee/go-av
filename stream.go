@@ -1,7 +1,5 @@
 package av
 
-// #include <libavformat/avformat.h>
-import "C"
 import (
 	"github.com/ssttevee/go-av/avcodec"
 	"github.com/ssttevee/go-av/avformat"
