@@ -12,5 +12,5 @@ void goavLogCallback(void *class_ptr, int level, const char *fmt, va_list vl) {
 }
 
 void goavLogSetup() {
-	av_log_set_callback(goavLogCallback);
+    av_log_set_callback(goavLogCallback);
 }

@@ -1,10 +1,8 @@
-package av
+package avutil
 
-// #include <stdlib.h>
 // #include <libavutil/log.h>
 //
-// extern void goavLogSetup();
-// extern void goavLogDirect(void *class_ptr, int level, char *fmt, va_list vl);
+// void goavLogSetup();
 import "C"
 import (
 	"log"
@@ -28,7 +26,7 @@ const (
 	Trace   = VerbosityLevel(C.AV_LOG_TRACE)
 )
 
-var logger *log.Logger
+var Logger *log.Logger
 var Verbosity = Info
 
 //export goavLog
@@ -37,13 +35,9 @@ func goavLog(level C.int, cstr *C.char) {
 		return
 	}
 
-	if logger == nil {
+	if Logger == nil {
 		log.Print(C.GoString(cstr))
 	} else {
-		logger.Print(C.GoString(cstr))
+		Logger.Print(C.GoString(cstr))
 	}
-}
-
-func SetLogger(l *log.Logger) {
-	logger = l
 }
