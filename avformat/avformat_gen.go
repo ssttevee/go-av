@@ -6,13 +6,10 @@ import (
 	avcodec "github.com/ssttevee/go-av/avcodec"
 	avutil "github.com/ssttevee/go-av/avutil"
 	common "github.com/ssttevee/go-av/internal/common"
-	"runtime"
 	"unsafe"
 )
 
 /*
-#cgo pkg-config: libavformat
-
 #include <libavformat/avformat.h>
 */
 import "C"
@@ -221,129 +218,4 @@ type Stream struct {
 	InjectGlobalSideData            int32
 	DisplayAspectRatio              avutil.Rational
 	Internal                        *C.struct_AVStreamInternal
-}
-
-func CloseIO(p0 *IOContext) int32 {
-	defer runtime.KeepAlive(p0)
-	ret := C.avio_close((*C.struct_AVIOContext)(unsafe.Pointer(p0)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func CloseInput(p0 **Context) {
-	defer runtime.KeepAlive(p0)
-	C.avformat_close_input((**C.struct_AVFormatContext)(unsafe.Pointer(p0)))
-}
-func FindBestStream(p0 *Context, p1 avutil.MediaType, p2 int32, p3 int32, p4 **avcodec.Codec, p5 int32) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p2)
-	defer runtime.KeepAlive(p3)
-	defer runtime.KeepAlive(p4)
-	defer runtime.KeepAlive(p5)
-	ret := C.av_find_best_stream((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (int32)(p1), *(*C.int)(unsafe.Pointer(&p2)), *(*C.int)(unsafe.Pointer(&p3)), (**C.struct_AVCodec)(unsafe.Pointer(p4)), *(*C.int)(unsafe.Pointer(&p5)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func FindStreamInfo(p0 *Context, p1 **avutil.Dictionary) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avformat_find_stream_info((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (**C.struct_AVDictionary)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func FreeContext(p0 *Context) {
-	defer runtime.KeepAlive(p0)
-	C.avformat_free_context((*C.struct_AVFormatContext)(unsafe.Pointer(p0)))
-}
-func FreeIOContext(p0 **IOContext) {
-	defer runtime.KeepAlive(p0)
-	C.avio_context_free((**C.struct_AVIOContext)(unsafe.Pointer(p0)))
-}
-func GuessFrameRate(p0 *Context, p1 *Stream, p2 *avutil.Frame) avutil.Rational {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	defer runtime.KeepAlive(p2)
-	ret := C.av_guess_frame_rate((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (*C.struct_AVStream)(unsafe.Pointer(p1)), (*C.struct_AVFrame)(unsafe.Pointer(p2)))
-	return *(*avutil.Rational)(unsafe.Pointer(&ret))
-}
-func NewContext() *Context {
-	return (*Context)(unsafe.Pointer(C.avformat_alloc_context()))
-}
-func NewIOContext(p0 *byte, p1 int32, p2 int32, p3 unsafe.Pointer, p4 unsafe.Pointer, p5 unsafe.Pointer, p6 unsafe.Pointer) *IOContext {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	defer runtime.KeepAlive(p2)
-	return (*IOContext)(unsafe.Pointer(C.avio_alloc_context((*C.uchar)(unsafe.Pointer(p0)), *(*C.int)(unsafe.Pointer(&p1)), *(*C.int)(unsafe.Pointer(&p2)), p3, (*[0]byte)(p4), (*[0]byte)(p5), (*[0]byte)(p6))))
-}
-func NewOutputContext(p0 **Context, p1 *C.struct_AVOutputFormat, p2 string, p3 string) int32 {
-	defer runtime.KeepAlive(p0)
-	var s2 *C.char
-	if p2 != "" {
-		s2 = C.CString(p2)
-		defer C.free(unsafe.Pointer(s2))
-	}
-	var s3 *C.char
-	if p3 != "" {
-		s3 = C.CString(p3)
-		defer C.free(unsafe.Pointer(s3))
-	}
-	ret := C.avformat_alloc_output_context2((**C.struct_AVFormatContext)(unsafe.Pointer(p0)), p1, s2, s3)
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func NewStream(p0 *Context, p1 *avcodec.Codec) *Stream {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	return (*Stream)(unsafe.Pointer(C.avformat_new_stream((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (*C.struct_AVCodec)(unsafe.Pointer(p1)))))
-}
-func OpenIO(p0 **IOContext, p1 string, p2 int32) int32 {
-	defer runtime.KeepAlive(p0)
-	var s1 *C.char
-	if p1 != "" {
-		s1 = C.CString(p1)
-		defer C.free(unsafe.Pointer(s1))
-	}
-	defer runtime.KeepAlive(p2)
-	ret := C.avio_open((**C.struct_AVIOContext)(unsafe.Pointer(p0)), s1, *(*C.int)(unsafe.Pointer(&p2)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func OpenInput(p0 **Context, p1 string, p2 *InputFormat, p3 **avutil.Dictionary) int32 {
-	defer runtime.KeepAlive(p0)
-	var s1 *C.char
-	if p1 != "" {
-		s1 = C.CString(p1)
-		defer C.free(unsafe.Pointer(s1))
-	}
-	defer runtime.KeepAlive(p2)
-	defer runtime.KeepAlive(p3)
-	ret := C.avformat_open_input((**C.struct_AVFormatContext)(unsafe.Pointer(p0)), s1, (*C.struct_AVInputFormat)(unsafe.Pointer(p2)), (**C.struct_AVDictionary)(unsafe.Pointer(p3)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func ReadFrame(p0 *Context, p1 *avcodec.Packet) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.av_read_frame((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func SeekFile(p0 *Context, p1 int32, p2 int64, p3 int64, p4 int64, p5 int32) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	defer runtime.KeepAlive(p2)
-	defer runtime.KeepAlive(p3)
-	defer runtime.KeepAlive(p4)
-	defer runtime.KeepAlive(p5)
-	ret := C.avformat_seek_file((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), *(*C.int)(unsafe.Pointer(&p1)), *(*C.int64_t)(unsafe.Pointer(&p2)), *(*C.int64_t)(unsafe.Pointer(&p3)), *(*C.int64_t)(unsafe.Pointer(&p4)), *(*C.int)(unsafe.Pointer(&p5)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func WriteHeader(p0 *Context, p1 **avutil.Dictionary) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avformat_write_header((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (**C.struct_AVDictionary)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func WriteInterleavedFrame(p0 *Context, p1 *avcodec.Packet) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.av_interleaved_write_frame((*C.struct_AVFormatContext)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func WriteTrailer(p0 *Context) int32 {
-	defer runtime.KeepAlive(p0)
-	ret := C.av_write_trailer((*C.struct_AVFormatContext)(unsafe.Pointer(p0)))
-	return *(*int32)(unsafe.Pointer(&ret))
 }

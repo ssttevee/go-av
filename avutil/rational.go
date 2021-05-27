@@ -5,7 +5,7 @@ import (
 )
 
 func RescaleQRound(a int64, b, c Rational, flags Rounding) int64 {
-	return RescaleRound(a, int64(b.Num*c.Den), int64(c.Num*b.Den), uint32(flags))
+	return RescaleRound(a, int64(b.Num*c.Den), int64(c.Num*b.Den), flags)
 }
 
 func RescaleQ(a int64, b, c Rational) int64 {
@@ -29,7 +29,7 @@ func (q Rational) IsZero() bool {
 }
 
 func (q Rational) Float64() float64 {
-	return q2d(q)
+	return float64(q.Num) / float64(q.Den)
 }
 
 func (q Rational) Inverse() Rational {

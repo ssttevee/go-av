@@ -2,8 +2,6 @@
 
 package avcodec
 
-// #cgo pkg-config: libavcodec
-//
 // #include <libavcodec/avcodec.h>
 // #include <libavcodec/packet.h>
 import "C"
@@ -60,5 +58,6 @@ import "C"
 // +gen wrapfunc av_bsf_send_packet SendBitstreamFilterPacket
 // +gen wrapfunc av_bsf_get_by_name GetBitstreamFilterByName
 
+// +gen paramtype avcodec_get_name 0 ID
 // +gen paramtype avcodec_find_decoder 0 ID
 // +gen paramtype avcodec_find_encoder 0 ID

@@ -10,6 +10,21 @@ import (
 	"github.com/ssttevee/go-fmterrors"
 )
 
+func shouldSkipFile(name string) bool {
+	switch {
+	default:
+		return false
+
+	case !strings.HasSuffix(name, ".go"):
+	case strings.HasSuffix(name, "_test.go"):
+	case strings.HasSuffix(name, "_gen.go"):
+	case name == "static.go":
+	case name == "dynamic.go":
+	}
+
+	return true
+}
+
 func start() error {
 	const dirname = "."
 	list, err := ioutil.ReadDir(dirname)
@@ -19,7 +34,7 @@ func start() error {
 
 	files := make(map[string]*Unit)
 	for _, item := range list {
-		if item.IsDir() || !strings.HasSuffix(item.Name(), ".go") || strings.HasSuffix(item.Name(), "_test.go") || strings.HasSuffix(item.Name(), "_gen.go") {
+		if item.IsDir() || shouldSkipFile(item.Name()) {
 			continue
 		}
 

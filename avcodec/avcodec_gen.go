@@ -5,13 +5,10 @@ package avcodec
 import (
 	avutil "github.com/ssttevee/go-av/avutil"
 	common "github.com/ssttevee/go-av/internal/common"
-	"runtime"
 	"unsafe"
 )
 
 /*
-#cgo pkg-config: libavcodec
-
 #include <libavcodec/avcodec.h>
 #include <libavcodec/packet.h>
 */
@@ -312,139 +309,4 @@ type Parameters struct {
 	TrailingPadding    int32
 	SeekPreroll        int32
 	_                  [4]byte
-}
-
-func CopyParameters(p0 *Parameters, p1 *Parameters) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avcodec_parameters_copy((*C.struct_AVCodecParameters)(unsafe.Pointer(p0)), (*C.struct_AVCodecParameters)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func FindDecoder(p0 ID) *Codec {
-	return (*Codec)(unsafe.Pointer(C.avcodec_find_decoder((uint32)(p0))))
-}
-func FindDecoderByName(p0 string) *Codec {
-	var s0 *C.char
-	if p0 != "" {
-		s0 = C.CString(p0)
-		defer C.free(unsafe.Pointer(s0))
-	}
-	return (*Codec)(unsafe.Pointer(C.avcodec_find_decoder_by_name(s0)))
-}
-func FindEncoder(p0 ID) *Codec {
-	return (*Codec)(unsafe.Pointer(C.avcodec_find_encoder((uint32)(p0))))
-}
-func FindEncoderByName(p0 string) *Codec {
-	var s0 *C.char
-	if p0 != "" {
-		s0 = C.CString(p0)
-		defer C.free(unsafe.Pointer(s0))
-	}
-	return (*Codec)(unsafe.Pointer(C.avcodec_find_encoder_by_name(s0)))
-}
-func FreeBitstreamFilter(p0 **BitstreamFilterContext) {
-	defer runtime.KeepAlive(p0)
-	C.av_bsf_free((**C.struct_AVBSFContext)(unsafe.Pointer(p0)))
-}
-func FreeContext(p0 **Context) {
-	defer runtime.KeepAlive(p0)
-	C.avcodec_free_context((**C.struct_AVCodecContext)(unsafe.Pointer(p0)))
-}
-func FreePacket(p0 **Packet) {
-	defer runtime.KeepAlive(p0)
-	C.av_packet_free((**C.struct_AVPacket)(unsafe.Pointer(p0)))
-}
-func GetBitstreamFilterByName(p0 string) *BitstreamFilter {
-	var s0 *C.char
-	if p0 != "" {
-		s0 = C.CString(p0)
-		defer C.free(unsafe.Pointer(s0))
-	}
-	return (*BitstreamFilter)(unsafe.Pointer(C.av_bsf_get_by_name(s0)))
-}
-func InitBitstreamFilter(p0 *BitstreamFilterContext) int32 {
-	defer runtime.KeepAlive(p0)
-	ret := C.av_bsf_init((*C.struct_AVBSFContext)(unsafe.Pointer(p0)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func NewBitstreamFilter(p0 *BitstreamFilter, p1 **BitstreamFilterContext) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.av_bsf_alloc((*C.struct_AVBitStreamFilter)(unsafe.Pointer(p0)), (**C.struct_AVBSFContext)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func NewContext(p0 *Codec) *Context {
-	defer runtime.KeepAlive(p0)
-	return (*Context)(unsafe.Pointer(C.avcodec_alloc_context3((*C.struct_AVCodec)(unsafe.Pointer(p0)))))
-}
-func NewPacket() *Packet {
-	return (*Packet)(unsafe.Pointer(C.av_packet_alloc()))
-}
-func Open(p0 *Context, p1 *Codec, p2 **avutil.Dictionary) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	defer runtime.KeepAlive(p2)
-	ret := C.avcodec_open2((*C.struct_AVCodecContext)(unsafe.Pointer(p0)), (*C.struct_AVCodec)(unsafe.Pointer(p1)), (**C.struct_AVDictionary)(unsafe.Pointer(p2)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func ParametersFromContext(p0 *Parameters, p1 *Context) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avcodec_parameters_from_context((*C.struct_AVCodecParameters)(unsafe.Pointer(p0)), (*C.struct_AVCodecContext)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func ParametersToContext(p0 *Context, p1 *Parameters) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avcodec_parameters_to_context((*C.struct_AVCodecContext)(unsafe.Pointer(p0)), (*C.struct_AVCodecParameters)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func ReceiveBitstreamFilterPacket(p0 *BitstreamFilterContext, p1 *Packet) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.av_bsf_receive_packet((*C.struct_AVBSFContext)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func ReceiveFrame(p0 *Context, p1 *avutil.Frame) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avcodec_receive_frame((*C.struct_AVCodecContext)(unsafe.Pointer(p0)), (*C.struct_AVFrame)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func ReceivePacket(p0 *Context, p1 *Packet) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avcodec_receive_packet((*C.struct_AVCodecContext)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func RefPacket(p0 *Packet, p1 *Packet) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.av_packet_ref((*C.struct_AVPacket)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func SendBitstreamFilterPacket(p0 *BitstreamFilterContext, p1 *Packet) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.av_bsf_send_packet((*C.struct_AVBSFContext)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func SendFrame(p0 *Context, p1 *avutil.Frame) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avcodec_send_frame((*C.struct_AVCodecContext)(unsafe.Pointer(p0)), (*C.struct_AVFrame)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func SendPacket(p0 *Context, p1 *Packet) int32 {
-	defer runtime.KeepAlive(p0)
-	defer runtime.KeepAlive(p1)
-	ret := C.avcodec_send_packet((*C.struct_AVCodecContext)(unsafe.Pointer(p0)), (*C.struct_AVPacket)(unsafe.Pointer(p1)))
-	return *(*int32)(unsafe.Pointer(&ret))
-}
-func UnrefPacket(p0 *Packet) {
-	defer runtime.KeepAlive(p0)
-	C.av_packet_unref((*C.struct_AVPacket)(unsafe.Pointer(p0)))
-}
-func getName(p0 uint32) *common.CChar {
-	return (*common.CChar)(unsafe.Pointer(C.avcodec_get_name(p0)))
 }

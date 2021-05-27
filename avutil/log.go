@@ -6,11 +6,8 @@ package avutil
 import "C"
 import (
 	"log"
+	"sync"
 )
-
-func init() {
-	C.goavLogSetup()
-}
 
 type VerbosityLevel int
 
@@ -25,6 +22,14 @@ const (
 	Debug   = VerbosityLevel(C.AV_LOG_DEBUG)
 	Trace   = VerbosityLevel(C.AV_LOG_TRACE)
 )
+
+var initLoggingOnce sync.Once
+
+func initLogging() {
+	initLoggingOnce.Do(func() {
+		C.goavLogSetup()
+	})
+}
 
 var Logger *log.Logger
 var Verbosity = Info

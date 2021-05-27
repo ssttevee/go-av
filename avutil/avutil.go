@@ -2,8 +2,6 @@
 
 package avutil
 
-// #cgo pkg-config: libavutil
-//
 // #include <libavutil/avutil.h>
 // #include <libavutil/buffer.h>
 // #include <libavutil/dict.h>
@@ -66,8 +64,8 @@ import "C"
 // +gen wrapfunc av_get_sample_fmt_name getSampleFormatName
 // +gen wrapfunc av_get_media_type_string getMediaTypeString
 // +gen wrapfunc av_hwdevice_get_type_name getHWDeviceTypeName
-// +gen wrapfunc av_q2d q2d
 
+// +gen paramtype av_rescale_rnd 3 Rounding
 // +gen paramtype av_hwdevice_ctx_create 1 HWDeviceType
 // +gen paramtype av_opt_set_pixel_fmt 2 PixelFormat
 // +gen paramtype av_get_pix_fmt_name 0 PixelFormat

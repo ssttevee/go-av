@@ -30,10 +30,5 @@ func (e Error) Error() string {
 		return "internal codec error; placeholder for error in pinned format context data"
 	}
 
-	var buf [64]C.char
-	if C.av_strerror(C.int(e), &buf[0], 64) != 0 {
-		return "unknown error"
-	}
-
-	return C.GoString(&buf[0])
+	return getErrorString(e)
 }

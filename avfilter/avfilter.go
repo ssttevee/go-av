@@ -2,8 +2,6 @@
 
 package avfilter
 
-// #cgo pkg-config: libavfilter
-//
 // #include <libavfilter/buffersrc.h>
 // #include <libavfilter/buffersink.h>
 import "C"

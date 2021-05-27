@@ -11,5 +11,5 @@ const (
 )
 
 func (id ID) String() string {
-	return getName(uint32(id)).String()
+	return getName(id).String()
 }
