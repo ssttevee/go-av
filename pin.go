@@ -1,14 +1,16 @@
 package av
 
 import (
-	"math/rand"
+	"sync/atomic"
 	"unsafe"
 )
 
 type pinType uint32
 
+var pinCounter uint32
+
 func randPin() pinType {
-	return pinType(rand.Uint32())
+	return pinType(atomic.AddUint32(&pinCounter, 1))
 }
 
 func pin(p unsafe.Pointer) pinType {
