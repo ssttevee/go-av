@@ -1,6 +1,6 @@
 module github.com/ssttevee/go-av
 
-go 1.14
+go 1.17
 
 require (
 	github.com/dave/jennifer v1.4.1

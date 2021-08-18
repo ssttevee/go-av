@@ -124,7 +124,7 @@ func (ctx *InputFormatContext) realError(err error) error {
 	if averr, ok := errors.Unwrap(err).(avutil.Error); ok {
 		switch int(averr) {
 		case common.IOError:
-			return pinnedFiles[pin(ctx.Pb.Opaque)].err
+			return unwrapPinnedFile(ctx.Pb.Opaque).err
 
 		case common.FormatError:
 			return ctx.pinnedData().err

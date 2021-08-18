@@ -8,12 +8,12 @@ package av
 import "C"
 import (
 	"reflect"
+	"runtime/cgo"
 	"sync"
 	"unsafe"
 
 	"github.com/ssttevee/go-av/avcodec"
 	"github.com/ssttevee/go-av/avutil"
-	"github.com/ssttevee/go-av/internal/common"
 )
 
 type CodecNotFoundError string
@@ -177,16 +177,13 @@ type pinnedCodecContextData struct {
 	getFormatFunc func([]avutil.PixelFormat) avutil.PixelFormat
 }
 
-var pinnedCodecContextDataEntries = map[pinType]*pinnedCodecContextData{}
-
-func returnPinnedCodecContextDataError(p unsafe.Pointer, err error) C.int {
-	pinnedCodecContextDataEntries[pin(p)].err = err
-	return C.int(common.FormatError)
+func unwrapPinnedCodecContextData(p unsafe.Pointer) *pinnedCodecContextData {
+	return cgo.Handle(p).Value().(*pinnedCodecContextData)
 }
 
 //export goavCodecContextGetFormat
 func goavCodecContextGetFormat(ctx *C.struct_AVCodecContext, choices *C.int) int32 {
-	return int32(pinnedCodecContextDataEntries[pin((*avcodec.Context)(unsafe.Pointer(ctx)).Opaque)].getFormatFunc(pixelFormatSlice((*avutil.PixelFormat)(unsafe.Pointer(choices)))))
+	return int32(unwrapPinnedCodecContextData((*avcodec.Context)(unsafe.Pointer(ctx)).Opaque).getFormatFunc(pixelFormatSlice((*avutil.PixelFormat)(unsafe.Pointer(choices)))))
 }
 
 type _codecContext = avcodec.Context
@@ -217,20 +214,10 @@ func newCodecContext(codec *Codec, params *CodecParameters) (*avcodec.Context, e
 
 func (ctx *codecContext) pinnedData() *pinnedCodecContextData {
 	ctx.pinnedDataOnce.Do(func() {
-		var p pinType
-		for {
-			p = randPin()
-			if _, ok := pinnedCodecContextDataEntries[p]; !ok {
-				break
-			}
-		}
-
-		pinnedCodecContextDataEntries[p] = &pinnedCodecContextData{}
-
-		ctx.Opaque = pinptr(p)
+		ctx.Opaque = unsafe.Pointer(cgo.NewHandle(&pinnedCodecContextData{}))
 	})
 
-	return pinnedCodecContextDataEntries[pin(ctx.Opaque)]
+	return unwrapPinnedCodecContextData(ctx.Opaque)
 }
 
 func (ctx *codecContext) finalizedPinnedData() {
@@ -238,7 +225,7 @@ func (ctx *codecContext) finalizedPinnedData() {
 		return
 	}
 
-	delete(pinnedCodecContextDataEntries, pin(ctx.Opaque))
+	cgo.Handle(ctx.Opaque).Delete()
 }
 
 func (ctx *codecContext) Codec() *Codec {

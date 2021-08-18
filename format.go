@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"runtime/cgo"
 	"sync"
 	"unsafe"
 
@@ -92,21 +93,17 @@ type pinnedFormatContextData struct {
 	err    error
 }
 
-var pinnedFormatContextDataEntries = map[pinType]*pinnedFormatContextData{}
+func unwrapPinnedFormatContextDataEntries(p unsafe.Pointer) *pinnedFormatContextData {
+	return cgo.Handle(p).Value().(*pinnedFormatContextData)
+}
 
 func returnPinnedFormatContextDataError(p unsafe.Pointer, err error) C.int {
-	pinnedFormatContextDataEntries[pin(p)].err = err
+	unwrapPinnedFormatContextDataEntries(p).err = err
 	return C.int(common.FormatError)
 }
 
 //export goavIOOpen
 func goavIOOpen(s *C.struct_AVFormatContext, pb **C.struct_AVIOContext, url *C.char, flags C.int, options **C.struct_AVDictionary) C.int {
-	opaque := (*avformat.Context)(unsafe.Pointer(s)).Opaque
-	data, ok := pinnedFormatContextDataEntries[pin(opaque)]
-	if !ok {
-		panic("pinned data not found")
-	}
-
 	var goflags int
 	var writable bool
 	if flags&avformat.IOFlagWrite != 0 {
@@ -116,7 +113,8 @@ func goavIOOpen(s *C.struct_AVFormatContext, pb **C.struct_AVIOContext, url *C.c
 		goflags = os.O_RDONLY
 	}
 
-	f, err := data.opener.Open(C.GoString(url), goflags)
+	opaque := (*avformat.Context)(unsafe.Pointer(s)).Opaque
+	f, err := unwrapPinnedFormatContextDataEntries(opaque).opener.Open(C.GoString(url), goflags)
 	if err != nil {
 		return returnPinnedFormatContextDataError(opaque, err)
 	}
@@ -129,11 +127,11 @@ func goavIOOpen(s *C.struct_AVFormatContext, pb **C.struct_AVIOContext, url *C.c
 //export goavIOClose
 func goavIOClose(s *C.struct_AVFormatContext, pb *C.struct_AVIOContext) C.int {
 	opaque := (*avformat.IOContext)(unsafe.Pointer(pb)).Opaque
-	if err := pinnedFiles[pin(opaque)].f.(io.Closer).Close(); err != nil {
+	if err := unwrapPinnedFile(opaque).f.(io.Closer).Close(); err != nil {
 		return returnPinnedFormatContextDataError((*avformat.Context)(unsafe.Pointer(s)).Opaque, err)
 	}
 
-	delete(pinnedFiles, pin(opaque))
+	cgo.Handle(opaque).Delete()
 
 	return 0
 }
@@ -148,20 +146,10 @@ type formatContext struct {
 
 func (ctx *formatContext) pinnedData() *pinnedFormatContextData {
 	ctx.pinnedDataOnce.Do(func() {
-		var p pinType
-		for {
-			p = randPin()
-			if _, ok := pinnedFormatContextDataEntries[p]; !ok {
-				break
-			}
-		}
-
-		pinnedFormatContextDataEntries[p] = &pinnedFormatContextData{}
-
-		ctx.Opaque = pinptr(p)
+		ctx.Opaque = unsafe.Pointer(cgo.NewHandle(&pinnedFormatContextData{}))
 	})
 
-	return pinnedFormatContextDataEntries[pin(ctx.Opaque)]
+	return unwrapPinnedFormatContextDataEntries(ctx.Opaque)
 }
 
 func (ctx *formatContext) finalizePinnedData() {
@@ -169,7 +157,7 @@ func (ctx *formatContext) finalizePinnedData() {
 		return
 	}
 
-	delete(pinnedFormatContextDataEntries, pin(ctx.Opaque))
+	cgo.Handle(ctx.Opaque).Delete()
 }
 
 func (ctx *formatContext) FindBestStream(mediaType avutil.MediaType) (int, *Codec, error) {

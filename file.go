@@ -10,6 +10,7 @@ import (
 	"io"
 	"reflect"
 	"runtime"
+	"runtime/cgo"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -36,19 +37,16 @@ func (f *pinnedFile) Seek(offset int64, whence int) (int64, error) {
 	return f.f.(io.Seeker).Seek(offset, whence)
 }
 
-var pinnedFiles = map[pinType]*pinnedFile{}
+func unwrapPinnedFile(p unsafe.Pointer) *pinnedFile {
+	return cgo.Handle(p).Value().(*pinnedFile)
+}
 
 func getPinnedFile(p unsafe.Pointer) io.ReadWriteSeeker {
-	f, ok := pinnedFiles[pin(p)]
-	if !ok {
-		panic("pinned file not found")
-	}
-
-	return f
+	return unwrapPinnedFile(p)
 }
 
 func returnPinnedFileError(p unsafe.Pointer, err error) C.int {
-	pinnedFiles[pin(p)].err = err
+	unwrapPinnedFile(p).err = err
 	return C.int(common.IOError)
 }
 
@@ -118,25 +116,17 @@ func allocAvioContext(f interface{}, writable bool) *avformat.IOContext {
 		panic("f must implement at least one of io.Reader or io.Writer")
 	}
 
-	var p pinType
-	for {
-		p = randPin()
-		if _, ok := pinnedFiles[p]; !ok {
-			break
-		}
-	}
-
 	var writeFlag int32
 	if writable {
 		writeFlag = 1
 	}
 
-	ctx := avformat.NewIOContext((*byte)(avutil.Malloc(1<<12)), 1<<12, writeFlag, pinptr(p), read, write, seek)
+	h := cgo.NewHandle(&pinnedFile{f: f})
+	ctx := avformat.NewIOContext((*byte)(avutil.Malloc(1<<12)), 1<<12, writeFlag, unsafe.Pointer(h), read, write, seek)
 	if ctx == nil {
+		h.Delete()
 		panic(avutil.ErrNoMem)
 	}
-
-	pinnedFiles[p] = &pinnedFile{f: f}
 
 	return ctx
 }
@@ -147,7 +137,7 @@ func newIOContext(f interface{}, writable bool) *ioContext {
 	}
 
 	runtime.SetFinalizer(ret, func(ctx *ioContext) {
-		delete(pinnedFiles, pin(ctx._ioContext.Opaque))
+		cgo.Handle(ctx._ioContext.Opaque).Delete()
 		// heap pointer may not be passed to cgo, so use a stack pointer instead :D
 		ioContext := (*avformat.IOContext)(ctx._ioContext)
 		avformat.FreeIOContext(&ioContext)
