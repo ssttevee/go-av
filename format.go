@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"runtime"
 	"runtime/cgo"
 	"sync"
 	"unsafe"
@@ -114,6 +115,8 @@ func goavIOOpen(s *C.struct_AVFormatContext, pb **C.struct_AVIOContext, url *C.c
 	}
 
 	opaque := (*avformat.Context)(unsafe.Pointer(s)).Opaque
+	defer runtime.KeepAlive(opaque)
+
 	f, err := unwrapPinnedFormatContextDataEntries(opaque).opener.Open(C.GoString(url), goflags)
 	if err != nil {
 		return returnPinnedFormatContextDataError(opaque, err)
@@ -127,6 +130,8 @@ func goavIOOpen(s *C.struct_AVFormatContext, pb **C.struct_AVIOContext, url *C.c
 //export goavIOClose
 func goavIOClose(s *C.struct_AVFormatContext, pb *C.struct_AVIOContext) C.int {
 	opaque := (*avformat.IOContext)(unsafe.Pointer(pb)).Opaque
+	defer runtime.KeepAlive(opaque)
+
 	if err := unwrapPinnedFile(opaque).f.(io.Closer).Close(); err != nil {
 		return returnPinnedFormatContextDataError((*avformat.Context)(unsafe.Pointer(s)).Opaque, err)
 	}

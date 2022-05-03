@@ -60,6 +60,8 @@ func wrapCBuf(buf *C.uint8_t, size C.int) []byte {
 
 //export goavFileReadPacket
 func goavFileReadPacket(p unsafe.Pointer, buf *C.uint8_t, bufSize C.int) C.int {
+	defer runtime.KeepAlive(p)
+
 	n, err := getPinnedFile(p).Read(wrapCBuf(buf, bufSize))
 	if errors.Is(err, io.EOF) {
 		if n <= 0 {
@@ -74,6 +76,8 @@ func goavFileReadPacket(p unsafe.Pointer, buf *C.uint8_t, bufSize C.int) C.int {
 
 //export goavFileWritePacket
 func goavFileWritePacket(p unsafe.Pointer, buf *C.uint8_t, bufSize C.int) C.int {
+	defer runtime.KeepAlive(p)
+
 	_, err := getPinnedFile(p).Write(wrapCBuf(buf, bufSize))
 	if err != nil {
 		return returnPinnedFileError(p, err)
@@ -84,6 +88,8 @@ func goavFileWritePacket(p unsafe.Pointer, buf *C.uint8_t, bufSize C.int) C.int 
 
 //export goavFileSeek
 func goavFileSeek(p unsafe.Pointer, offset C.int64_t, whence C.int) C.int64_t {
+	defer runtime.KeepAlive(p)
+
 	pos, err := getPinnedFile(p).Seek(int64(offset), int(whence))
 	if err != nil {
 		return C.int64_t(returnPinnedFileError(p, err))

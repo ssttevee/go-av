@@ -8,6 +8,7 @@ package av
 import "C"
 import (
 	"reflect"
+	"runtime"
 	"runtime/cgo"
 	"sync"
 	"unsafe"
@@ -183,7 +184,10 @@ func unwrapPinnedCodecContextData(p unsafe.Pointer) *pinnedCodecContextData {
 
 //export goavCodecContextGetFormat
 func goavCodecContextGetFormat(ctx *C.struct_AVCodecContext, choices *C.int) int32 {
-	return int32(unwrapPinnedCodecContextData((*avcodec.Context)(unsafe.Pointer(ctx)).Opaque).getFormatFunc(pixelFormatSlice((*avutil.PixelFormat)(unsafe.Pointer(choices)))))
+	opaque := (*avcodec.Context)(unsafe.Pointer(ctx)).Opaque
+	defer runtime.KeepAlive(opaque)
+
+	return int32(unwrapPinnedCodecContextData(opaque).getFormatFunc(pixelFormatSlice((*avutil.PixelFormat)(unsafe.Pointer(choices)))))
 }
 
 type _codecContext = avcodec.Context
