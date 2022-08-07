@@ -63,9 +63,9 @@ struct AVFilter* dyn_avfilter_get_by_name(char* p0) {
     return _avfilter_get_by_name(p0);
 };
 
-static int (*_avfilter_link)(struct AVFilterContext*, uint, struct AVFilterContext*, uint);
+static int (*_avfilter_link)(struct AVFilterContext*, unsigned, struct AVFilterContext*, unsigned);
 
-int dyn_avfilter_link(struct AVFilterContext* p0, uint p1, struct AVFilterContext* p2, uint p3) {
+int dyn_avfilter_link(struct AVFilterContext* p0, unsigned p1, struct AVFilterContext* p2, unsigned p3) {
     return _avfilter_link(p0, p1, p2, p3);
 };
 

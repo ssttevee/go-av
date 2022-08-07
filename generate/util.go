@@ -95,6 +95,10 @@ func ctypeFromGoExpr(expr ast.Expr) (string, bool) {
 			return "unsigned char", true
 		}
 
+		if cname == "uint" {
+			return "unsigned", true
+		}
+
 		if strings.HasPrefix(cname, "struct_") {
 			cname = "struct " + cname[7:]
 		}
