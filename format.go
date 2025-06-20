@@ -189,6 +189,21 @@ func (ctx *formatContext) GetOption(name string) (interface{}, error) {
 	return getOption(ctx.PrivData, name, 0)
 }
 
+func (ctx *formatContext) Filename() string {
+	return (&ctx._formatContext.Filename[0]).String()
+}
+
+func (ctx *formatContext) SetFilename(name string) {
+	if len(name) > len(ctx._formatContext.Filename) {
+		panic("filename too long")
+	}
+
+	buf := *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(unsafe.Pointer(&ctx._formatContext.Filename[0])), Len: len(ctx._formatContext.Filename), Cap: len(ctx._formatContext.Filename)}))
+	for i := 0; i < len(name); i++ {
+		buf[i] = []byte(name)[i]
+	}
+}
+
 func (ctx *formatContext) streams() []*avformat.Stream {
 	return *(*[]*avformat.Stream)(unsafe.Pointer(&reflect.SliceHeader{Data: uintptr(unsafe.Pointer(ctx._formatContext.Streams)), Len: int(ctx.NbStreams), Cap: int(ctx.NbStreams)}))
 }
