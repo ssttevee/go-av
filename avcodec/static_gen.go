@@ -12,6 +12,7 @@ import (
 
 /*
 #include <libavcodec/avcodec.h>
+#include <libavcodec/bsf.h>
 #include <libavcodec/packet.h>
 */
 import "C"
