@@ -23,7 +23,10 @@ type Context struct {
 	CtxFlags                    int32
 	NbStreams                   uint32
 	Streams                     **Stream
-	Filename                    [1024]common.CChar
+	NbStreamGroups              uint32
+	StreamGroups                **C.struct_AVStreamGroup
+	NbChapters                  uint32
+	Chapters                    **C.struct_AVChapter
 	Url                         *common.CChar
 	StartTime                   int64
 	Duration                    int64
@@ -40,26 +43,27 @@ type Context struct {
 	VideoCodecID                uint32
 	AudioCodecID                uint32
 	SubtitleCodecID             uint32
-	MaxIndexSize                uint32
-	MaxPictureBuffer            uint32
-	NbChapters                  uint32
-	Chapters                    **C.struct_AVChapter
+	DataCodecID                 uint32
 	Metadata                    *avutil.Dictionary
 	StartTimeRealtime           int64
 	FpsProbeSize                int32
 	ErrorRecognition            int32
 	InterruptCallback           C.struct_AVIOInterruptCB
 	Debug                       int32
+	MaxStreams                  int32
+	MaxIndexSize                uint32
+	MaxPictureBuffer            uint32
 	MaxInterleaveDelta          int64
-	StrictStdCompliance         int32
-	EventFlags                  int32
 	MaxTsProbe                  int32
-	AvoidNegativeTs             int32
-	TsID                        int32
-	AudioPreload                int32
 	MaxChunkDuration            int32
 	MaxChunkSize                int32
+	MaxProbePackets             int32
+	StrictStdCompliance         int32
+	EventFlags                  int32
+	AvoidNegativeTs             int32
+	AudioPreload                int32
 	UseWallclockAsTimestamps    int32
+	SkipEstimateDurationFromPts int32
 	AvioFlags                   int32
 	DurationEstimationMethod    uint32
 	SkipInitialBytes            int64
@@ -70,7 +74,8 @@ type Context struct {
 	FormatProbesize             int32
 	CodecWhitelist              *common.CChar
 	FormatWhitelist             *common.CChar
-	Internal                    *C.struct_AVFormatInternal
+	ProtocolWhitelist           *common.CChar
+	ProtocolBlacklist           *common.CChar
 	IoRepositioned              int32
 	VideoCodec                  *avcodec.Codec
 	AudioCodec                  *avcodec.Codec
@@ -81,16 +86,9 @@ type Context struct {
 	ControlMessageCb            C.av_format_control_message
 	OutputTsOffset              int64
 	DumpSeparator               *uint8
-	DataCodecID                 uint32
-	OpenCb                      *[0]byte
-	ProtocolWhitelist           *common.CChar
 	IoOpen                      *[0]byte
-	IoClose                     *[0]byte
-	ProtocolBlacklist           *common.CChar
-	MaxStreams                  int32
-	SkipEstimateDurationFromPts int32
-	MaxProbePackets             int32
-	_                           [4]byte
+	IoClose2                    *[0]byte
+	DurationProbesize           int64
 }
 type IOContext struct {
 	AvClass             *avutil.Class
@@ -104,118 +102,54 @@ type IOContext struct {
 	Seek                *[0]byte
 	Pos                 int64
 	EofReached          int32
+	Error               int32
 	WriteFlag           int32
 	MaxPacketSize       int32
+	MinPacketSize       int32
 	Checksum            C.ulong
 	ChecksumPtr         *byte
 	UpdateChecksum      *[0]byte
-	Error               int32
 	ReadPause           *[0]byte
 	ReadSeek            *[0]byte
 	Seekable            int32
-	Maxsize             int64
 	Direct              int32
-	BytesRead           int64
-	SeekCount           int32
-	WriteoutCount       int32
-	OrigBufferSize      int32
-	ShortSeekThreshold  int32
 	ProtocolWhitelist   *common.CChar
 	ProtocolBlacklist   *common.CChar
 	WriteDataType       *[0]byte
 	IgnoreBoundaryPoint int32
-	CurrentType         uint32
-	LastTime            int64
-	ShortSeekGet        *[0]byte
-	Written             int64
 	BufPtrMax           *byte
-	MinPacketSize       int32
-	_                   [4]byte
+	BytesRead           int64
+	BytesWritten        int64
 }
 type InputFormat struct {
-	Name                     *common.CChar
-	LongName                 *common.CChar
-	Flags                    int32
-	Extensions               *common.CChar
-	CodecTag                 **C.struct_AVCodecTag
-	PrivClass                *avutil.Class
-	MimeType                 *common.CChar
-	Next                     *InputFormat
-	RawCodecID               int32
-	PrivDataSize             int32
-	ReadProbe                *[0]byte
-	ReadHeader               *[0]byte
-	ReadPacket               *[0]byte
-	ReadClose                *[0]byte
-	ReadSeek                 *[0]byte
-	ReadTimestamp            *[0]byte
-	ReadPlay                 *[0]byte
-	ReadPause                *[0]byte
-	ReadSeek2                *[0]byte
-	GetDeviceList            *[0]byte
-	CreateDeviceCapabilities *[0]byte
-	FreeDeviceCapabilities   *[0]byte
+	Name       *common.CChar
+	LongName   *common.CChar
+	Flags      int32
+	Extensions *common.CChar
+	CodecTag   **C.struct_AVCodecTag
+	PrivClass  *avutil.Class
+	MimeType   *common.CChar
 }
 type Stream struct {
-	Index                           int32
-	ID                              int32
-	Codec                           *avcodec.Context
-	PrivData                        unsafe.Pointer
-	TimeBase                        avutil.Rational
-	StartTime                       int64
-	Duration                        int64
-	NbFrames                        int64
-	Disposition                     int32
-	Discard                         int32
-	SampleAspectRatio               avutil.Rational
-	Metadata                        *avutil.Dictionary
-	AvgFrameRate                    avutil.Rational
-	AttachedPic                     avcodec.Packet
-	SideData                        *C.struct_AVPacketSideData
-	NbSideData                      int32
-	EventFlags                      int32
-	RFrameRate                      avutil.Rational
-	RecommendedEncoderConfiguration *common.CChar
-	Codecpar                        *avcodec.Parameters
-	Info                            *C.struct___0
-	PtsWrapBits                     int32
-	FirstDts                        int64
-	CurDts                          int64
-	LastIPPts                       int64
-	LastIPDuration                  int32
-	ProbePackets                    int32
-	CodecInfoNbFrames               int32
-	NeedParsing                     uint32
-	Parser                          *C.struct_AVCodecParserContext
-	LastInPacketBuffer              *C.struct_AVPacketList
-	ProbeData                       C.struct_AVProbeData
-	PtsBuffer                       [17]int64
-	IndexEntries                    *C.struct_AVIndexEntry
-	NbIndexEntries                  int32
-	IndexEntriesAllocatedSize       uint32
-	StreamIdentifier                int32
-	ProgramNum                      int32
-	PmtVersion                      int32
-	PmtStreamIdx                    int32
-	InterleaverChunkSize            int64
-	InterleaverChunkDuration        int64
-	RequestProbe                    int32
-	SkipToKeyframe                  int32
-	SkipSamples                     int32
-	StartSkipSamples                int64
-	FirstDiscardSample              int64
-	LastDiscardSample               int64
-	NbDecodedFrames                 int32
-	MuxTsOffset                     int64
-	PtsWrapReference                int64
-	PtsWrapBehavior                 int32
-	UpdateInitialDurationsDone      int32
-	PtsReorderError                 [17]int64
-	PtsReorderErrorCount            [17]uint8
-	LastDtsForOrderCheck            int64
-	DtsOrdered                      uint8
-	DtsMisordered                   uint8
-	InjectGlobalSideData            int32
-	DisplayAspectRatio              avutil.Rational
-	Internal                        *C.struct_AVStreamInternal
+	AvClass           *avutil.Class
+	Index             int32
+	ID                int32
+	Codecpar          *avcodec.Parameters
+	PrivData          unsafe.Pointer
+	TimeBase          avutil.Rational
+	StartTime         int64
+	Duration          int64
+	NbFrames          int64
+	Disposition       int32
+	Discard           int32
+	SampleAspectRatio avutil.Rational
+	Metadata          *avutil.Dictionary
+	AvgFrameRate      avutil.Rational
+	AttachedPic       avcodec.Packet
+	SideData          *C.struct_AVPacketSideData
+	NbSideData        int32
+	EventFlags        int32
+	RFrameRate        avutil.Rational
+	PtsWrapBits       int32
+	_                 [4]byte
 }

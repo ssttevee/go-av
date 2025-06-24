@@ -16,19 +16,13 @@ import (
 import "C"
 
 type BitstreamFilter struct {
-	Name         *common.CChar
-	CodecIDs     *uint32
-	PrivClass    *avutil.Class
-	PrivDataSize int32
-	Init         *[0]byte
-	Filter       *[0]byte
-	Close        *[0]byte
-	Flush        *[0]byte
+	Name      *common.CChar
+	CodecIDs  *uint32
+	PrivClass *avutil.Class
 }
 type BitstreamFilterContext struct {
 	AvClass     *avutil.Class
 	Filter      *BitstreamFilter
-	Internal    *C.struct_AVBSFInternal
 	PrivData    unsafe.Pointer
 	ParIn       *Parameters
 	ParOut      *Parameters
@@ -41,243 +35,186 @@ type Codec struct {
 	Type                 avutil.MediaType
 	ID                   ID
 	Capabilities         int32
+	MaxLowres            uint8
 	SupportedFramerates  *avutil.Rational
 	PixFmts              *avutil.PixelFormat
 	SupportedSamplerates *int32
 	SampleFmts           *avutil.SampleFormat
-	ChannelLayouts       *uint64
-	MaxLowres            uint8
 	PrivClass            *avutil.Class
 	Profiles             *C.struct_AVProfile
 	WrapperName          *common.CChar
-	PrivDataSize         int32
-	Next                 *Codec
-	UpdateThreadContext  *[0]byte
-	Defaults             *C.struct_AVCodecDefault
-	InitStaticData       *[0]byte
-	Init                 *[0]byte
-	EncodeSub            *[0]byte
-	Encode2              *[0]byte
-	Decode               *[0]byte
-	Close                *[0]byte
-	SendFrame            *[0]byte
-	ReceivePacket        *[0]byte
-	ReceiveFrame         *[0]byte
-	Flush                *[0]byte
-	CapsInternal         int32
-	Bsfs                 *common.CChar
-	HwConfigs            **C.struct_AVCodecHWConfigInternal
-	CodecTags            *C.uint32_t
+	ChLayouts            *C.struct_AVChannelLayout
 }
 type Context struct {
-	AvClass                   *avutil.Class
-	LogLevelOffset            int32
-	CodecType                 avutil.MediaType
-	Codec                     *Codec
-	CodecID                   uint32
-	CodecTag                  uint32
-	PrivData                  unsafe.Pointer
-	Internal                  *C.struct_AVCodecInternal
-	Opaque                    unsafe.Pointer
-	BitRate                   int64
-	BitRateTolerance          int32
-	GlobalQuality             int32
-	CompressionLevel          int32
-	Flags                     int32
-	Flags2                    int32
-	Extradata                 *uint8
-	ExtradataSize             int32
-	TimeBase                  avutil.Rational
-	TicksPerFrame             int32
-	Delay                     int32
-	Width                     int32
-	Height                    int32
-	CodedWidth                int32
-	CodedHeight               int32
-	GopSize                   int32
-	PixFmt                    avutil.PixelFormat
-	DrawHorizBand             *[0]byte
-	GetFormat                 *[0]byte
-	MaxBFrames                int32
-	BQuantFactor              C.float
-	BFrameStrategy            int32
-	BQuantOffset              C.float
-	HasBFrames                int32
-	MpegQuant                 int32
-	IQuantFactor              C.float
-	IQuantOffset              C.float
-	LumiMasking               C.float
-	TemporalCplxMasking       C.float
-	SpatialCplxMasking        C.float
-	PMasking                  C.float
-	DarkMasking               C.float
-	SliceCount                int32
-	PredictionMethod          int32
-	SliceOffset               *int32
-	SampleAspectRatio         avutil.Rational
-	MeCmp                     int32
-	MeSubCmp                  int32
-	MbCmp                     int32
-	IldctCmp                  int32
-	DiaSize                   int32
-	LastPredictorCount        int32
-	PreMe                     int32
-	MePreCmp                  int32
-	PreDiaSize                int32
-	MeSubpelQuality           int32
-	MeRange                   int32
-	SliceFlags                int32
-	MbDecision                int32
-	IntraMatrix               *C.uint16_t
-	InterMatrix               *C.uint16_t
-	ScenechangeThreshold      int32
-	NoiseReduction            int32
-	IntraDcPrecision          int32
-	SkipTop                   int32
-	SkipBottom                int32
-	MbLmin                    int32
-	MbLmax                    int32
-	MePenaltyCompensation     int32
-	BidirRefine               int32
-	BrdScale                  int32
-	KeyintMin                 int32
-	Refs                      int32
-	Chromaoffset              int32
-	Mv0Threshold              int32
-	BSensitivity              int32
-	ColorPrimaries            uint32
-	ColorTrc                  uint32
-	Colorspace                uint32
-	ColorRange                uint32
-	ChromaSampleLocation      uint32
-	Slices                    int32
-	FieldOrder                uint32
-	SampleRate                int32
-	Channels                  int32
-	SampleFmt                 avutil.SampleFormat
-	FrameSize                 int32
-	FrameNumber               int32
-	BlockAlign                int32
-	Cutoff                    int32
-	ChannelLayout             uint64
-	RequestChannelLayout      uint64
-	AudioServiceType          uint32
-	RequestSampleFmt          int32
-	GetBuffer2                *[0]byte
-	RefcountedFrames          int32
-	Qcompress                 C.float
-	Qblur                     C.float
-	Qmin                      int32
-	Qmax                      int32
-	MaxQdiff                  int32
-	RcBufferSize              int32
-	RcOverrideCount           int32
-	RcOverride                *C.struct_RcOverride
-	RcMaxRate                 int64
-	RcMinRate                 int64
-	RcMaxAvailableVbvUse      C.float
-	RcMinVbvOverflowUse       C.float
-	RcInitialBufferOccupancy  int32
-	CoderType                 int32
-	ContextModel              int32
-	FrameSkipThreshold        int32
-	FrameSkipFactor           int32
-	FrameSkipExp              int32
-	FrameSkipCmp              int32
-	Trellis                   int32
-	MinPredictionOrder        int32
-	MaxPredictionOrder        int32
-	TimecodeFrameStart        int64
-	RtpCallback               *[0]byte
-	RtpPayloadSize            int32
-	MvBits                    int32
-	HeaderBits                int32
-	ITexBits                  int32
-	PTexBits                  int32
-	ICount                    int32
-	PCount                    int32
-	SkipCount                 int32
-	MiscBits                  int32
-	FrameBits                 int32
-	StatsOut                  *common.CChar
-	StatsIn                   *common.CChar
-	WorkaroundBugs            int32
-	StrictStdCompliance       int32
-	ErrorConcealment          int32
-	Debug                     int32
-	ErrRecognition            int32
-	ReorderedOpaque           int64
-	Hwaccel                   *C.struct_AVHWAccel
-	HwaccelContext            unsafe.Pointer
-	Error                     [8]uint64
-	DctAlgo                   int32
-	IdctAlgo                  int32
-	BitsPerCodedSample        int32
-	BitsPerRawSample          int32
-	Lowres                    int32
-	CodedFrame                *avutil.Frame
-	ThreadCount               int32
-	ThreadType                int32
-	ActiveThreadType          int32
-	ThreadSafeCallbacks       int32
-	Execute                   *[0]byte
-	Execute2                  *[0]byte
-	NsseWeight                int32
-	Profile                   int32
-	Level                     int32
-	SkipLoopFilter            int32
-	SkipIdct                  int32
-	SkipFrame                 int32
-	SubtitleHeader            *uint8
-	SubtitleHeaderSize        int32
-	VbvDelay                  uint64
-	SideDataOnlyPackets       int32
-	InitialPadding            int32
-	Framerate                 avutil.Rational
-	SwPixFmt                  int32
-	PktTimebase               avutil.Rational
-	CodecDescriptor           *C.struct_AVCodecDescriptor
-	PtsCorrectionNumFaultyPts int64
-	PtsCorrectionNumFaultyDts int64
-	PtsCorrectionLastPts      int64
-	PtsCorrectionLastDts      int64
-	SubCharenc                *common.CChar
-	SubCharencMode            int32
-	SkipAlpha                 int32
-	SeekPreroll               int32
-	DebugMv                   int32
-	ChromaIntraMatrix         *C.uint16_t
-	DumpSeparator             *uint8
-	CodecWhitelist            *common.CChar
-	Properties                uint32
-	CodedSideData             *C.struct_AVPacketSideData
-	NbCodedSideData           int32
-	HwFramesCtx               *avutil.BufferRef
-	SubTextFormat             int32
-	TrailingPadding           int32
-	MaxPixels                 int64
-	HwDeviceCtx               *avutil.BufferRef
-	HwaccelFlags              int32
-	ApplyCropping             int32
-	ExtraHwFrames             int32
-	DiscardDamagedPercentage  int32
-	MaxSamples                int64
-	ExportSideData            int32
-	_                         [4]byte
+	AvClass                  *avutil.Class
+	LogLevelOffset           int32
+	CodecType                avutil.MediaType
+	Codec                    *Codec
+	CodecID                  uint32
+	CodecTag                 uint32
+	PrivData                 unsafe.Pointer
+	Internal                 *C.struct_AVCodecInternal
+	Opaque                   unsafe.Pointer
+	BitRate                  int64
+	Flags                    int32
+	Flags2                   int32
+	Extradata                *uint8
+	ExtradataSize            int32
+	TimeBase                 avutil.Rational
+	PktTimebase              avutil.Rational
+	Framerate                avutil.Rational
+	TicksPerFrame            int32
+	Delay                    int32
+	Width                    int32
+	Height                   int32
+	CodedWidth               int32
+	CodedHeight              int32
+	SampleAspectRatio        avutil.Rational
+	PixFmt                   avutil.PixelFormat
+	SwPixFmt                 int32
+	ColorPrimaries           uint32
+	ColorTrc                 uint32
+	Colorspace               uint32
+	ColorRange               uint32
+	ChromaSampleLocation     uint32
+	FieldOrder               uint32
+	Refs                     int32
+	HasBFrames               int32
+	SliceFlags               int32
+	DrawHorizBand            *[0]byte
+	GetFormat                *[0]byte
+	MaxBFrames               int32
+	BQuantFactor             C.float
+	BQuantOffset             C.float
+	IQuantFactor             C.float
+	IQuantOffset             C.float
+	LumiMasking              C.float
+	TemporalCplxMasking      C.float
+	SpatialCplxMasking       C.float
+	PMasking                 C.float
+	DarkMasking              C.float
+	NsseWeight               int32
+	MeCmp                    int32
+	MeSubCmp                 int32
+	MbCmp                    int32
+	IldctCmp                 int32
+	DiaSize                  int32
+	LastPredictorCount       int32
+	MePreCmp                 int32
+	PreDiaSize               int32
+	MeSubpelQuality          int32
+	MeRange                  int32
+	MbDecision               int32
+	IntraMatrix              *C.uint16_t
+	InterMatrix              *C.uint16_t
+	ChromaIntraMatrix        *C.uint16_t
+	IntraDcPrecision         int32
+	MbLmin                   int32
+	MbLmax                   int32
+	BidirRefine              int32
+	KeyintMin                int32
+	GopSize                  int32
+	Mv0Threshold             int32
+	Slices                   int32
+	SampleRate               int32
+	SampleFmt                avutil.SampleFormat
+	ChLayout                 C.struct_AVChannelLayout
+	FrameSize                int32
+	BlockAlign               int32
+	Cutoff                   int32
+	AudioServiceType         uint32
+	RequestSampleFmt         int32
+	InitialPadding           int32
+	TrailingPadding          int32
+	SeekPreroll              int32
+	GetBuffer2               *[0]byte
+	BitRateTolerance         int32
+	GlobalQuality            int32
+	CompressionLevel         int32
+	Qcompress                C.float
+	Qblur                    C.float
+	Qmin                     int32
+	Qmax                     int32
+	MaxQdiff                 int32
+	RcBufferSize             int32
+	RcOverrideCount          int32
+	RcOverride               *C.struct_RcOverride
+	RcMaxRate                int64
+	RcMinRate                int64
+	RcMaxAvailableVbvUse     C.float
+	RcMinVbvOverflowUse      C.float
+	RcInitialBufferOccupancy int32
+	Trellis                  int32
+	StatsOut                 *common.CChar
+	StatsIn                  *common.CChar
+	WorkaroundBugs           int32
+	StrictStdCompliance      int32
+	ErrorConcealment         int32
+	Debug                    int32
+	ErrRecognition           int32
+	Hwaccel                  *C.struct_AVHWAccel
+	HwaccelContext           unsafe.Pointer
+	HwFramesCtx              *avutil.BufferRef
+	HwDeviceCtx              *avutil.BufferRef
+	HwaccelFlags             int32
+	ExtraHwFrames            int32
+	Error                    [8]uint64
+	DctAlgo                  int32
+	IdctAlgo                 int32
+	BitsPerCodedSample       int32
+	BitsPerRawSample         int32
+	ThreadCount              int32
+	ThreadType               int32
+	ActiveThreadType         int32
+	Execute                  *[0]byte
+	Execute2                 *[0]byte
+	Profile                  int32
+	Level                    int32
+	Properties               uint32
+	SkipLoopFilter           int32
+	SkipIdct                 int32
+	SkipFrame                int32
+	SkipAlpha                int32
+	SkipTop                  int32
+	SkipBottom               int32
+	Lowres                   int32
+	CodecDescriptor          *C.struct_AVCodecDescriptor
+	SubCharenc               *common.CChar
+	SubCharencMode           int32
+	SubtitleHeaderSize       int32
+	SubtitleHeader           *uint8
+	DumpSeparator            *uint8
+	CodecWhitelist           *common.CChar
+	CodedSideData            *C.struct_AVPacketSideData
+	NbCodedSideData          int32
+	ExportSideData           int32
+	MaxPixels                int64
+	ApplyCropping            int32
+	DiscardDamagedPercentage int32
+	MaxSamples               int64
+	GetEncodeBuffer          *[0]byte
+	FrameNum                 int64
+	SideDataPreferPacket     *int32
+	NbSideDataPreferPacket   uint32
+	DecodedSideData          **C.struct_AVFrameSideData
+	NbDecodedSideData        int32
+	_                        [4]byte
 }
 type Packet struct {
-	Buf                 *avutil.BufferRef
-	Pts                 int64
-	Dts                 int64
-	Data                *uint8
-	Size                int32
-	StreamIndex         int32
-	Flags               int32
-	SideData            *C.struct_AVPacketSideData
-	SideDataElems       int32
-	Duration            int64
-	Pos                 int64
-	ConvergenceDuration int64
+	Buf           *avutil.BufferRef
+	Pts           int64
+	Dts           int64
+	Data          *uint8
+	Size          int32
+	StreamIndex   int32
+	Flags         int32
+	SideData      *C.struct_AVPacketSideData
+	SideDataElems int32
+	Duration      int64
+	Pos           int64
+	Opaque        unsafe.Pointer
+	OpaqueRef     *avutil.BufferRef
+	TimeBase      avutil.Rational
 }
 type Parameters struct {
 	CodecType          int32
@@ -285,6 +222,8 @@ type Parameters struct {
 	CodecTag           C.uint32_t
 	Extradata          *uint8
 	ExtradataSize      int32
+	CodedSideData      *C.struct_AVPacketSideData
+	NbCodedSideData    int32
 	Format             int32
 	BitRate            int64
 	BitsPerCodedSample int32
@@ -294,6 +233,7 @@ type Parameters struct {
 	Width              int32
 	Height             int32
 	SampleAspectRatio  avutil.Rational
+	Framerate          avutil.Rational
 	FieldOrder         uint32
 	ColorRange         uint32
 	ColorPrimaries     uint32
@@ -301,13 +241,11 @@ type Parameters struct {
 	ColorSpace         uint32
 	ChromaLocation     uint32
 	VideoDelay         int32
-	ChannelLayout      uint64
-	Channels           int32
+	ChLayout           C.struct_AVChannelLayout
 	SampleRate         int32
 	BlockAlign         int32
 	FrameSize          int32
 	InitialPadding     int32
 	TrailingPadding    int32
 	SeekPreroll        int32
-	_                  [4]byte
 }
