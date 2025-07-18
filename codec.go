@@ -166,6 +166,10 @@ func (c *Codec) SampleFmt(i int) avutil.SampleFormat {
 	return *(*avutil.SampleFormat)(unsafe.Pointer(uintptr(unsafe.Pointer(c._codec.SampleFmts)) + unsafe.Sizeof(*c._codec.SampleFmts)*uintptr(i)))
 }
 
+func (c *Codec) GetProfileName(profile int32) string {
+	return avcodec.GetProfileName(c._codec, profile).String()
+}
+
 type _codecParameters = avcodec.Parameters
 
 type CodecParameters struct {

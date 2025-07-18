@@ -66,6 +66,11 @@ func GetBitstreamFilterByName(p0 string) *BitstreamFilter {
 	}
 	return (*BitstreamFilter)(unsafe.Pointer(C.av_bsf_get_by_name(s0)))
 }
+func GetProfileName(p0 *Codec, p1 int32) *common.CChar {
+	defer runtime.KeepAlive(p0)
+	defer runtime.KeepAlive(p1)
+	return (*common.CChar)(unsafe.Pointer(C.av_get_profile_name((*C.struct_AVCodec)(unsafe.Pointer(p0)), *(*C.int)(unsafe.Pointer(&p1)))))
+}
 func InitBitstreamFilter(p0 *BitstreamFilterContext) int32 {
 	defer runtime.KeepAlive(p0)
 	ret := C.av_bsf_init((*C.struct_AVBSFContext)(unsafe.Pointer(p0)))

@@ -85,6 +85,12 @@ struct AVBitStreamFilter* dyn_av_bsf_get_by_name(char* p0) {
     return _av_bsf_get_by_name(p0);
 };
 
+static char* (*_av_get_profile_name)(struct AVCodec*, int);
+
+char* dyn_av_get_profile_name(struct AVCodec* p0, int p1) {
+    return _av_get_profile_name(p0, p1);
+};
+
 static int (*_av_bsf_init)(struct AVBSFContext*);
 
 int dyn_av_bsf_init(struct AVBSFContext* p0) {
@@ -220,6 +226,10 @@ char *goav_load_avcodec() {
         return ret;
     }
     _av_bsf_get_by_name = dlsym(handle, "av_bsf_get_by_name");
+    if (ret = dlerror()) {
+        return ret;
+    }
+    _av_get_profile_name = dlsym(handle, "av_get_profile_name");
     if (ret = dlerror()) {
         return ret;
     }
@@ -368,6 +378,12 @@ func GetBitstreamFilterByName(p0 string) *BitstreamFilter {
 		defer C.free(unsafe.Pointer(s0))
 	}
 	return (*BitstreamFilter)(unsafe.Pointer(C.dyn_av_bsf_get_by_name(s0)))
+}
+func GetProfileName(p0 *Codec, p1 int32) *common.CChar {
+	dynamicInit()
+	defer runtime.KeepAlive(p0)
+	defer runtime.KeepAlive(p1)
+	return (*common.CChar)(unsafe.Pointer(C.dyn_av_get_profile_name((*C.struct_AVCodec)(unsafe.Pointer(p0)), *(*C.int)(unsafe.Pointer(&p1)))))
 }
 func InitBitstreamFilter(p0 *BitstreamFilterContext) int32 {
 	dynamicInit()
