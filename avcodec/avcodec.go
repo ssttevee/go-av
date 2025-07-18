@@ -62,3 +62,5 @@ import "C"
 // +gen paramtype avcodec_get_name 0 ID
 // +gen paramtype avcodec_find_decoder 0 ID
 // +gen paramtype avcodec_find_encoder 0 ID
+
+// +gen wrapfunc av_get_profile_name GetProfileName
