@@ -13,11 +13,10 @@ package avutil
 import "C"
 
 // +gen convtype struct_AVClass Class
+// +gen convtype struct_AVDictionary Dictionary
 // +gen convtype struct_AVFrame Frame
-// +gen convtype struct_AVBuffer Buffer
 // +gen convtype struct_AVBufferRef BufferRef
 // +gen convtype struct_AVFrameSideData FrameSideData
-// +gen convtype struct_AVDictionary Dictionary
 // +gen convtype struct_AVRational Rational
 // +gen convtype struct_AVOption Option
 // +gen convtype struct_AVHWDeviceContext HWDeviceContext

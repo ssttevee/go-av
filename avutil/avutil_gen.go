@@ -19,9 +19,8 @@ import (
 */
 import "C"
 
-type Buffer struct{}
 type BufferRef struct {
-	Buffer *Buffer
+	Buffer *C.struct_AVBuffer
 	Data   *uint8
 	Size   int32
 	_      [4]byte
@@ -39,7 +38,6 @@ type Class struct {
 	GetCategory            *[0]byte
 	QueryRanges            *[0]byte
 }
-type Dictionary struct{}
 type Frame struct {
 	Data                 [8]*uint8
 	Linesize             [8]int32

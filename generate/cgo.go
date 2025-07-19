@@ -131,7 +131,19 @@ func (u *Unit) ctypeSpec(cname string) (interface{}, error) {
 		}, nil
 
 	default:
-		return nil, errors.Errorf("unexpected type type: %T (%s)", obj.Decl, cname)
+		if sel, ok := typeSpec.Type.(*ast.SelectorExpr); ok {
+			if ident, ok := sel.X.(*ast.Ident); ok {
+				if ident.Name == "_cgopackage" {
+					if sel.Sel.Name == "Incomplete" {
+						return &TypeSpec{
+							Type: sel.Sel.Name,
+						}, nil
+					}
+				}
+			}
+		}
+
+		return nil, errors.Errorf("unexpected type type: %T (%s)", typ, cname)
 	}
 }
 
