@@ -62,6 +62,11 @@ import "C"
 // +gen wrapfunc av_get_pix_fmt_name getPixelFormatName
 // +gen wrapfunc av_get_sample_fmt_name getSampleFormatName
 // +gen wrapfunc av_get_media_type_string getMediaTypeString
+// +gen wrapfunc av_color_range_name getColorRangeName
+// +gen wrapfunc av_color_primaries_name getColorPrimariesName
+// +gen wrapfunc av_color_transfer_name getColorTransferName
+// +gen wrapfunc av_color_space_name getColorSpaceName
+// +gen wrapfunc av_chroma_location_name getChromaLocationName
 // +gen wrapfunc av_hwdevice_get_type_name getHWDeviceTypeName
 
 // +gen paramtype av_rescale_rnd 3 Rounding

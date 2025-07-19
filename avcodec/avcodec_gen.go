@@ -295,8 +295,8 @@ type Parameters struct {
 	Height             int32
 	SampleAspectRatio  avutil.Rational
 	FieldOrder         uint32
-	ColorRange         uint32
-	ColorPrimaries     uint32
+	ColorRange         avutil.ColorRange
+	ColorPrimaries     avutil.ColorPrimaries
 	ColorTrc           uint32
 	ColorSpace         uint32
 	ChromaLocation     uint32

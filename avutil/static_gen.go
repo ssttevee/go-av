@@ -221,6 +221,21 @@ func UnrefFrame(p0 *Frame) {
 	defer runtime.KeepAlive(p0)
 	C.av_frame_unref((*C.struct_AVFrame)(unsafe.Pointer(p0)))
 }
+func getChromaLocationName(p0 uint32) *common.CChar {
+	return (*common.CChar)(unsafe.Pointer(C.av_chroma_location_name(p0)))
+}
+func getColorPrimariesName(p0 uint32) *common.CChar {
+	return (*common.CChar)(unsafe.Pointer(C.av_color_primaries_name(p0)))
+}
+func getColorRangeName(p0 uint32) *common.CChar {
+	return (*common.CChar)(unsafe.Pointer(C.av_color_range_name(p0)))
+}
+func getColorSpaceName(p0 uint32) *common.CChar {
+	return (*common.CChar)(unsafe.Pointer(C.av_color_space_name(p0)))
+}
+func getColorTransferName(p0 uint32) *common.CChar {
+	return (*common.CChar)(unsafe.Pointer(C.av_color_transfer_name(p0)))
+}
 func getHWDeviceTypeName(p0 HWDeviceType) *common.CChar {
 	return (*common.CChar)(unsafe.Pointer(C.av_hwdevice_get_type_name((uint32)(p0))))
 }

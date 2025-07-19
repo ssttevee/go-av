@@ -183,6 +183,36 @@ void dyn_av_frame_unref(struct AVFrame* p0) {
     _av_frame_unref(p0);
 };
 
+static char* (*_av_chroma_location_name)(uint32_t);
+
+char* dyn_av_chroma_location_name(uint32_t p0) {
+    return _av_chroma_location_name(p0);
+};
+
+static char* (*_av_color_primaries_name)(uint32_t);
+
+char* dyn_av_color_primaries_name(uint32_t p0) {
+    return _av_color_primaries_name(p0);
+};
+
+static char* (*_av_color_range_name)(uint32_t);
+
+char* dyn_av_color_range_name(uint32_t p0) {
+    return _av_color_range_name(p0);
+};
+
+static char* (*_av_color_space_name)(uint32_t);
+
+char* dyn_av_color_space_name(uint32_t p0) {
+    return _av_color_space_name(p0);
+};
+
+static char* (*_av_color_transfer_name)(uint32_t);
+
+char* dyn_av_color_transfer_name(uint32_t p0) {
+    return _av_color_transfer_name(p0);
+};
+
 static char* (*_av_hwdevice_get_type_name)(uint32_t);
 
 char* dyn_av_hwdevice_get_type_name(uint32_t p0) {
@@ -314,6 +344,26 @@ char *goav_load_avutil() {
         return ret;
     }
     _av_frame_unref = dlsym(handle, "av_frame_unref");
+    if (ret = dlerror()) {
+        return ret;
+    }
+    _av_chroma_location_name = dlsym(handle, "av_chroma_location_name");
+    if (ret = dlerror()) {
+        return ret;
+    }
+    _av_color_primaries_name = dlsym(handle, "av_color_primaries_name");
+    if (ret = dlerror()) {
+        return ret;
+    }
+    _av_color_range_name = dlsym(handle, "av_color_range_name");
+    if (ret = dlerror()) {
+        return ret;
+    }
+    _av_color_space_name = dlsym(handle, "av_color_space_name");
+    if (ret = dlerror()) {
+        return ret;
+    }
+    _av_color_transfer_name = dlsym(handle, "av_color_transfer_name");
     if (ret = dlerror()) {
         return ret;
     }
@@ -582,6 +632,26 @@ func UnrefFrame(p0 *Frame) {
 	dynamicInit()
 	defer runtime.KeepAlive(p0)
 	C.dyn_av_frame_unref((*C.struct_AVFrame)(unsafe.Pointer(p0)))
+}
+func getChromaLocationName(p0 uint32) *common.CChar {
+	dynamicInit()
+	return (*common.CChar)(unsafe.Pointer(C.dyn_av_chroma_location_name(p0)))
+}
+func getColorPrimariesName(p0 uint32) *common.CChar {
+	dynamicInit()
+	return (*common.CChar)(unsafe.Pointer(C.dyn_av_color_primaries_name(p0)))
+}
+func getColorRangeName(p0 uint32) *common.CChar {
+	dynamicInit()
+	return (*common.CChar)(unsafe.Pointer(C.dyn_av_color_range_name(p0)))
+}
+func getColorSpaceName(p0 uint32) *common.CChar {
+	dynamicInit()
+	return (*common.CChar)(unsafe.Pointer(C.dyn_av_color_space_name(p0)))
+}
+func getColorTransferName(p0 uint32) *common.CChar {
+	dynamicInit()
+	return (*common.CChar)(unsafe.Pointer(C.dyn_av_color_transfer_name(p0)))
 }
 func getHWDeviceTypeName(p0 HWDeviceType) *common.CChar {
 	dynamicInit()

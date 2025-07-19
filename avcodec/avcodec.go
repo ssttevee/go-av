@@ -30,6 +30,8 @@ import "C"
 // +gen fieldtype struct_AVCodecContext sample_fmt github.com/ssttevee/go-av/avutil.SampleFormat
 
 // +gen fieldtype struct_AVCodecParameters codec_id ID
+// +gen fieldtype struct_AVCodecParameters color_range github.com/ssttevee/go-av/avutil.ColorRange
+// +gen fieldtype struct_AVCodecParameters color_primaries github.com/ssttevee/go-av/avutil.ColorPrimaries
 
 // +gen wrapfunc avcodec_open2 Open
 // +gen wrapfunc avcodec_alloc_context3 NewContext
